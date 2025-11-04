@@ -9,3 +9,5 @@ https://dgonzalezarroyo.github.io/varios/logaritmo.html
 https://dgonzalezarroyo.github.io/varios/planos.html 
 
 https://dgonzalezarroyo.github.io/varios/seno.html 
+
+https://dgonzalezarroyo.github.io/varios/deteccion_ia.html
