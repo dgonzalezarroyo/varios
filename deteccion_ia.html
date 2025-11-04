@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Detección de textos generados por IA — Resumen</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa4b2;--accent:#60a5fa;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;line-height:1.6;color:#e6eef8;background:linear-gradient(180deg,#071024 0%, #071827 100%);padding:32px}
+    .container{max-width:900px;margin:0 auto}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+    h1{font-size:1.5rem;margin:0;color:#fff}
+    p.lead{margin:0;color:var(--muted)}
+    .card{background:var(--card);padding:20px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.03)}
+    nav{display:flex;gap:8px;margin:16px 0}
+    nav a{color:var(--accent);text-decoration:none;padding:6px 10px;border-radius:8px;background:var(--glass);font-weight:600}
+    section{margin-bottom:16px}
+    h2{margin:0 0 8px 0;color:#d9f1ff}
+    ul{margin:0;padding-left:20px;color:var(--muted)}
+    code{background:rgba(255,255,255,0.03);padding:2px 6px;border-radius:6px}
+    footer{margin-top:20px;color:var(--muted);font-size:0.9rem}
+    .note{background:linear-gradient(90deg, rgba(96,165,250,0.06), rgba(96,165,250,0.03));padding:10px;border-radius:8px;margin-top:10px;color:var(--muted);border:1px solid rgba(96,165,250,0.06)}
+    @media (max-width:600px){body{padding:16px}h1{font-size:1.25rem}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+        <rect x="2" y="2" width="20" height="20" rx="6" fill="#0ea5e9" opacity="0.12"></rect>
+        <path d="M7 17c.5-2 2-3 5-3s4.5 1 5 3" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M9 7h6" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round"></path>
+      </svg>
+      <div>
+        <h1>¿Cómo detectar si un texto fue generado por IA?</h1>
+        <p class="lead">Resumen práctico con los tres apartados solicitados.</p>
+      </div>
+    </header>
+
+    <nav>
+      <a href="#apartado1">1. Qué hacen</a>
+      <a href="#apartado2">2. Limitaciones</a>
+      <a href="#apartado3">3. Qué funciona</a>
+    </nav>
+
+    <div class="card">
+      <section id="apartado1">
+        <h2>1. Qué hacen las herramientas de detección</h2>
+        <p>Las herramientas que intentan detectar textos generados por IA normalmente analizan patrones estadísticos y lingüísticos para calcular una <strong>probabilidad</strong> de origen automático. Entre los enfoques más comunes están:</p>
+        <ul>
+          <li><strong>Perplejidad:</strong> mide qué tan predecible es el texto para un modelo de lenguaje.</li>
+          <li><strong>Riqueza léxica:</strong> evalúa variedad de vocabulario y repeticiones.</li>
+          <li><strong>Patrones sintácticos:</strong> estructuras y frases típicas de modelos.</li>
+          <li><strong>Análisis de distribución de n-gramas:</strong> frases o secuencias que aparecen con más frecuencia en textos generados por IA.</li>
+        </ul>
+        <div class="note">Resultado: la mayoría de detectores entrega una <em>estimación probabilística</em>, no una prueba absoluta.</div>
+      </section>
+
+      <section id="apartado2">
+        <h2>2. Pero no es infalible</h2>
+        <p>La detección basada solo en texto tiene problemas importantes:</p>
+        <ul>
+          <li><strong>Falsos positivos:</strong> textos humanos muy cuidados pueden parecer generados por IA.</li>
+          <li><strong>Falsos negativos:</strong> IA editada o reescrita por humanos puede pasar por humana.</li>
+          <li><strong>Textos cortos o técnicos:</strong> carecen de suficiente señal para una clasificación fiable.</li>
+          <li><strong>Evolución de modelos:</strong> a medida que los modelos mejoran, se vuelven menos distinguibles.</li>
+        </ul>
+        <p class="note">Conclusión: la precisión real suele variar mucho; en muchos escenarios prácticos no es suficiente para decisiones críticas.</p>
+      </section>
+
+      <section id="apartado3">
+        <h2>3. Qué se puede hacer realmente</h2>
+        <p>En la práctica, las estrategias más efectivas para atribuir origen no dependen únicamente del texto:</p>
+        <ul>
+          <li><strong>Trazabilidad y metadatos:</strong> revisar registros, logs o flujos que indiquen uso de APIs o herramientas automáticas.</li>
+          <li><strong>Marcas de agua digitales:</strong> algunos modelos o plataformas pueden incorporar señales intencionales en el texto (ámbito experimental y regulado).</li>
+          <li><strong>Proceso humano:</strong> combinar análisis automatizado con revisión humana experta, especialmente en contextos importantes.</li>
+        </ul>
+        <div class="note">Práctica recomendada: usar detectores como apoyo informativo, no como la única evidencia.</div>
+      </section>
+
+      </div>
+  </div>
+</body>
+</html>
