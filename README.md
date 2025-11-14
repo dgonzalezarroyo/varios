@@ -11,3 +11,5 @@ https://dgonzalezarroyo.github.io/varios/planos.html
 https://dgonzalezarroyo.github.io/varios/seno.html 
 
 https://dgonzalezarroyo.github.io/varios/deteccion_ia.html
+
+https://dgonzalezarroyo.github.io/varios/Preguntas%20GIFT%20y%20sus%20formatos.html
