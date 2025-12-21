@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Evaluación Docente</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;600;700&family=Work+Sans:wght@400;500;600&display=swap');
+        
+        :root {
+            --primary: #2c5f4f;
+            --primary-light: #3d7d66;
+            --secondary: #d4a574;
+            --accent: #c85a54;
+            --bg-main: #faf8f5;
+            --bg-card: #ffffff;
+            --text-dark: #1a1a1a;
+            --text-medium: #4a4a4a;
+            --text-light: #7a7a7a;
+            --border: #e5e1da;
+            --positive: #4a9d6f;
+            --negative: #d46459;
+            --neutral: #b8b8b8;
+            --shadow: 0 2px 12px rgba(44, 95, 79, 0.08);
+            --shadow-hover: 0 4px 20px rgba(44, 95, 79, 0.12);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: linear-gradient(135deg, var(--bg-main) 0%, #f0ede6 100%);
+            color: var(--text-dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+            border-bottom: 3px solid var(--primary);
+            position: relative;
+        }
+        
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 3px;
+            background: var(--secondary);
+        }
+        
+        h1 {
+            font-family: 'Crimson Pro', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-medium);
+            font-weight: 400;
+        }
+        
+        .controls {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+        
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        input[type="date"], textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-family: 'Work Sans', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: var(--bg-main);
+        }
+        
+        input[type="date"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(44, 95, 79, 0.1);
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .items-grid {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .item-card {
+            background: var(--bg-card);
+            padding: 1.25rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 2px solid var(--border);
+            transition: all 0.3s ease;
+            animation: slideIn 0.4s ease-out backwards;
+        }
+        
+        .item-card:hover {
+            transform: translateX(4px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--primary-light);
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .item-card:nth-child(1) { animation-delay: 0.05s; }
+        .item-card:nth-child(2) { animation-delay: 0.1s; }
+        .item-card:nth-child(3) { animation-delay: 0.15s; }
+        .item-card:nth-child(4) { animation-delay: 0.2s; }
+        .item-card:nth-child(5) { animation-delay: 0.25s; }
+        
+        .item-text {
+            font-weight: 500;
+            color: var(--text-dark);
+            margin-bottom: 0.875rem;
+            line-height: 1.5;
+        }
+        
+        .item-code {
+            font-family: 'Crimson Pro', serif;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+        
+        .evaluation-buttons {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .eval-btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 2px solid;
+            border-radius: 8px;
+            font-family: 'Work Sans', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .eval-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .eval-btn:active {
+            transform: translateY(0);
+        }
+        
+        .eval-positive {
+            background: white;
+            border-color: var(--positive);
+            color: var(--positive);
+        }
+        
+        .eval-positive.active {
+            background: var(--positive);
+            color: white;
+        }
+        
+        .eval-negative {
+            background: white;
+            border-color: var(--negative);
+            color: var(--negative);
+        }
+        
+        .eval-negative.active {
+            background: var(--negative);
+            color: white;
+        }
+        
+        .eval-not-evaluated {
+            background: white;
+            border-color: var(--neutral);
+            color: var(--neutral);
+        }
+        
+        .eval-not-evaluated.active {
+            background: var(--neutral);
+            color: white;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Work Sans', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: var(--shadow);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text-dark);
+        }
+        
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .summary {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .summary h2 {
+            font-family: 'Crimson Pro', serif;
+            font-size: 2rem;
+            color: var(--primary);
+            margin: 0;
+        }
+        
+        .btn-export-pdf {
+            padding: 0.75rem 1.5rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Work Sans', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: var(--shadow);
+        }
+        
+        .btn-export-pdf:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+            background: #b04a44;
+        }
+        
+        .summary-section {
+            margin-bottom: 2rem;
+        }
+        
+        .summary-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .summary-section h3 {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.4rem;
+            color: var(--primary-light);
+            margin-bottom: 1rem;
+        }
+        
+        .summary-item {
+            padding: 0.75rem 1rem;
+            background: var(--bg-main);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid var(--positive);
+        }
+        
+        .summary-item.negative {
+            border-left-color: var(--negative);
+        }
+        
+        .summary-item.neutral {
+            border-left-color: var(--neutral);
+        }
+        
+        .session-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .session-badge {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--bg-card);
+            padding: 2.5rem;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.4s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-content h2 {
+            font-family: 'Crimson Pro', serif;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+        
+        .session-card {
+            background: var(--bg-main);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .session-card:hover {
+            border-color: var(--primary);
+            transform: translateX(4px);
+            box-shadow: var(--shadow);
+        }
+        
+        .session-date {
+            font-family: 'Crimson Pro', serif;
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .session-summary {
+            font-size: 0.95rem;
+            color: var(--text-medium);
+        }
+        
+        .close-modal {
+            background: var(--text-light);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Work Sans', sans-serif;
+            font-weight: 600;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .close-modal:hover {
+            background: var(--text-medium);
+        }
+        
+        .delete-session {
+            background: var(--negative);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .delete-session:hover {
+            background: #c23e38;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .file-label {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: var(--secondary);
+            color: var(--text-dark);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+        }
+        
+        .file-label:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--primary);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 2000;
+            animation: slideInRight 0.4s ease-out;
+            max-width: 400px;
+        }
+        
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .section-header {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 2.5rem 0 1.5rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--secondary);
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .evaluation-buttons {
+                flex-direction: column;
+            }
+            
+            .notification {
+                left: 1rem;
+                right: 1rem;
+                top: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Sistema de Evaluación Docente</h1>
+            <p class="subtitle">Registro y seguimiento de prácticas educativas</p>
+        </header>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="sessionDate">Fecha de la sesión</label>
+                <input type="date" id="sessionDate" required>
+            </div>
+            
+            <h3 class="section-header">Ítems de Evaluación</h3>
+            
+            <div class="items-grid" id="itemsContainer"></div>
+            
+            <div class="control-group">
+                <label for="observations">Observaciones</label>
+                <textarea id="observations" placeholder="Añadir observaciones sobre la sesión..."></textarea>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="saveSession()">💾 Guardar Sesión</button>
+            <button class="btn btn-secondary" onclick="showSessions()">📋 Ver Sesiones</button>
+            <button class="btn btn-accent" onclick="showSummary()">📊 Balance Final</button>
+            <button class="btn btn-secondary" onclick="exportToExcel()">📥 Exportar Excel</button>
+            <label for="importFile" class="file-label">📤 Importar Datos</label>
+            <input type="file" id="importFile" accept=".csv,.xlsx,.xls" onchange="importData(event)">
+            <button class="btn btn-accent" onclick="resetAllData()">🗑️ Resetear Datos</button>
+        </div>
+        
+        <div id="summaryContainer" class="summary" style="display: none;"></div>
+    </div>
+    
+    <div id="sessionsModal" class="modal">
+        <div class="modal-content">
+            <h2>Sesiones Registradas</h2>
+            <div id="sessionsListContainer"></div>
+            <button class="close-modal" onclick="closeModal()">Cerrar</button>
+        </div>
+    </div>
+    
+    <script>
+        // Definición de ítems
+        const ITEMS = [
+            "1.1. Empleo de una metodología adecuada y pertinente.",
+            "1.2. Uso de metodologías activas y participativas.",
+            "1.3. Desarrollo competencial a través de la metodología.",
+            "1.4. Estructuración adecuada de la sesión.",
+            "1.5. Realización de actividades diversas atendiendo a las características y a las diferencias individuales del alumnado.",
+            "1.6. Explicación de los contenidos propios del área/materia.",
+            "2.1. Elaboración de las unidades de su programación didáctica partiendo de la programación didáctica del departamento/ciclo.",
+            "2.2. Adaptación de la programación a las necesidades del grupo-clase.",
+            "2.3. Información de la programación didáctica y de los criterios y procedimientos de evaluación y calificación al alumnado y/o las familias.",
+            "3.1. Fomento de un clima de aula que permita el buen desarrollo del proceso de enseñanza-aprendizaje.",
+            "3.2. Aplicación de las reglas y normas establecidas para la organización y la convivencia en el aula.",
+            "3.3. Gestión de conflictos.",
+            "3.4. Fomento de la participación y la colaboración.",
+            "3.5. Organización del aula adaptada a las diferentes actividades y necesidades del alumnado.",
+            "4.1. Evaluación conforme a criterios objetivos, conocidos y establecidos en la programación.",
+            "4.2. Evaluación del aprendizaje según la temporalización establecida.",
+            "4.3. Uso de instrumentos y técnicas de evaluación variados y adaptados a las diferencias individuales del alumnado.",
+            "4.4. Uso instrumentos para el registro y seguimiento del aprendizaje que favorezcan la objetividad de la evaluación/calificación.",
+            "5.1. Realización de la evaluación de su práctica docente.",
+            "5.2. Obtención de conclusiones y/o propuestas de mejora",
+            "5.3. Implementación de propuestas de mejora en su práctica docente"
+        ];
+        
+        // Estado actual de la sesión
+        let currentSession = {};
+        
+        // IndexedDB
+        let db;
+        
+        // Inicializar IndexedDB
+        function initDB() {
+            const request = indexedDB.open('EvaluacionDocenteDB', 1);
+            
+            request.onerror = () => {
+                console.error('Error al abrir la base de datos');
+            };
+            
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                console.log('Base de datos iniciada correctamente');
+            };
+            
+            request.onupgradeneeded = (event) => {
+                db = event.target.result;
+                if (!db.objectStoreNames.contains('sessions')) {
+                    const objectStore = db.createObjectStore('sessions', { keyPath: 'date' });
+                    objectStore.createIndex('date', 'date', { unique: true });
+                }
+            };
+        }
+        
+        // Guardar sesión en IndexedDB
+        function saveToIndexedDB(session) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['sessions'], 'readwrite');
+                const objectStore = transaction.objectStore('sessions');
+                const request = objectStore.put(session);
+                
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject();
+            });
+        }
+        
+        // Obtener todas las sesiones
+        function getAllSessions() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['sessions'], 'readonly');
+                const objectStore = transaction.objectStore('sessions');
+                const request = objectStore.getAll();
+                
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject();
+            });
+        }
+        
+        // Eliminar sesión
+        function deleteSession(date) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['sessions'], 'readwrite');
+                const objectStore = transaction.objectStore('sessions');
+                const request = objectStore.delete(date);
+                
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject();
+            });
+        }
+        
+        // Renderizar ítems
+        function renderItems() {
+            const container = document.getElementById('itemsContainer');
+            container.innerHTML = '';
+            
+            ITEMS.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item-card';
+                
+                const code = item.split('.')[0] + '.' + item.split('.')[1];
+                
+                itemDiv.innerHTML = `
+                    <div class="item-text">
+                        <span class="item-code">${code}</span>
+                        ${item.substring(code.length)}
+                    </div>
+                    <div class="evaluation-buttons">
+                        <button class="eval-btn eval-positive" onclick="setEvaluation(${index}, 'positive')">
+                            ✓ Positivo
+                        </button>
+                        <button class="eval-btn eval-negative" onclick="setEvaluation(${index}, 'negative')">
+                            ✗ Negativo
+                        </button>
+                        <button class="eval-btn eval-not-evaluated active" onclick="setEvaluation(${index}, 'not-evaluated')">
+                            − No evaluado
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(itemDiv);
+            });
+        }
+        
+        // Establecer evaluación
+        function setEvaluation(index, type) {
+            currentSession[index] = type;
+            
+            const itemCard = document.querySelectorAll('.item-card')[index];
+            const buttons = itemCard.querySelectorAll('.eval-btn');
+            
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            if (type === 'positive') {
+                buttons[0].classList.add('active');
+            } else if (type === 'negative') {
+                buttons[1].classList.add('active');
+            } else {
+                buttons[2].classList.add('active');
+            }
+        }
+        
+        // Guardar sesión
+        async function saveSession() {
+            const date = document.getElementById('sessionDate').value;
+            const observations = document.getElementById('observations').value;
+            
+            if (!date) {
+                showNotification('Por favor, selecciona una fecha', 'error');
+                return;
+            }
+            
+            const session = {
+                date: date,
+                evaluations: { ...currentSession },
+                observations: observations
+            };
+            
+            try {
+                await saveToIndexedDB(session);
+                showNotification('Sesión guardada correctamente');
+                resetForm();
+            } catch (error) {
+                showNotification('Error al guardar la sesión', 'error');
+            }
+        }
+        
+        // Resetear formulario
+        function resetForm() {
+            document.getElementById('sessionDate').value = '';
+            document.getElementById('observations').value = '';
+            currentSession = {};
+            renderItems();
+        }
+        
+        // Mostrar sesiones
+        async function showSessions() {
+            const sessions = await getAllSessions();
+            const container = document.getElementById('sessionsListContainer');
+            container.innerHTML = '';
+            
+            if (sessions.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-medium);">No hay sesiones registradas</p>';
+            } else {
+                sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                sessions.forEach(session => {
+                    const positives = Object.values(session.evaluations).filter(e => e === 'positive').length;
+                    const negatives = Object.values(session.evaluations).filter(e => e === 'negative').length;
+                    const notEvaluated = ITEMS.length - positives - negatives;
+                    
+                    const sessionDiv = document.createElement('div');
+                    sessionDiv.className = 'session-card';
+                    sessionDiv.innerHTML = `
+                        <div class="session-date">${formatDate(session.date)}</div>
+                        <div class="session-summary">
+                            ✓ ${positives} positivos | ✗ ${negatives} negativos | − ${notEvaluated} no evaluados
+                        </div>
+                        ${session.observations ? `<div style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-medium);">📝 ${session.observations}</div>` : ''}
+                        <button class="delete-session" onclick="confirmDelete('${session.date}')">🗑️ Eliminar</button>
+                    `;
+                    
+                    container.appendChild(sessionDiv);
+                });
+            }
+            
+            document.getElementById('sessionsModal').classList.add('show');
+        }
+        
+        // Confirmar eliminación
+        async function confirmDelete(date) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta sesión?')) {
+                await deleteSession(date);
+                showNotification('Sesión eliminada');
+                showSessions();
+            }
+        }
+        
+        // Cerrar modal
+        function closeModal() {
+            document.getElementById('sessionsModal').classList.remove('show');
+        }
+        
+        // Mostrar resumen
+        async function showSummary() {
+            const sessions = await getAllSessions();
+            const container = document.getElementById('summaryContainer');
+            
+            if (sessions.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-medium);">No hay datos para mostrar el balance</p>';
+                container.style.display = 'block';
+                return;
+            }
+            
+            // Calcular resumen
+            const summary = {};
+            ITEMS.forEach((item, index) => {
+                summary[index] = {
+                    item: item,
+                    positive: [],
+                    negative: [],
+                    notEvaluated: []
+                };
+            });
+            
+            sessions.forEach(session => {
+                ITEMS.forEach((item, index) => {
+                    const evaluation = session.evaluations[index] || 'not-evaluated';
+                    if (evaluation === 'positive') {
+                        summary[index].positive.push(session.date);
+                    } else if (evaluation === 'negative') {
+                        summary[index].negative.push(session.date);
+                    } else {
+                        summary[index].notEvaluated.push(session.date);
+                    }
+                });
+            });
+            
+            // Renderizar resumen
+            let html = '<div class="summary-header"><h2>Balance Final de Evaluación</h2><button class="btn-export-pdf" onclick="exportBalanceToPDF()">📄 Exportar a PDF</button></div>';
+            
+            // Items positivos
+            html += '<div class="summary-section"><h3>✓ Ítems Evaluados Positivamente</h3>';
+            let hasPositive = false;
+            Object.values(summary).forEach(data => {
+                if (data.positive.length > 0) {
+                    hasPositive = true;
+                    html += `
+                        <div class="summary-item">
+                            <strong>${data.item}</strong>
+                            <div class="session-list">
+                                ${data.positive.map(date => `<span class="session-badge">${formatDate(date)}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            if (!hasPositive) {
+                html += '<p style="color: var(--text-medium);">No hay ítems evaluados positivamente</p>';
+            }
+            html += '</div>';
+            
+            // Items negativos
+            html += '<div class="summary-section"><h3>✗ Ítems Evaluados Negativamente</h3>';
+            let hasNegative = false;
+            Object.values(summary).forEach(data => {
+                if (data.negative.length > 0) {
+                    hasNegative = true;
+                    html += `
+                        <div class="summary-item negative">
+                            <strong>${data.item}</strong>
+                            <div class="session-list">
+                                ${data.negative.map(date => `<span class="session-badge">${formatDate(date)}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            if (!hasNegative) {
+                html += '<p style="color: var(--text-medium);">No hay ítems evaluados negativamente</p>';
+            }
+            html += '</div>';
+            
+            // Items no evaluados
+            html += '<div class="summary-section"><h3>− Ítems No Evaluados</h3>';
+            let hasNotEvaluated = false;
+            Object.values(summary).forEach(data => {
+                if (data.positive.length === 0 && data.negative.length === 0) {
+                    hasNotEvaluated = true;
+                    html += `
+                        <div class="summary-item neutral">
+                            <strong>${data.item}</strong>
+                            <p style="margin-top: 0.5rem; color: var(--text-medium);">Nunca evaluado en ninguna sesión</p>
+                        </div>
+                    `;
+                }
+            });
+            if (!hasNotEvaluated) {
+                html += '<p style="color: var(--text-medium);">Todos los ítems han sido evaluados al menos una vez</p>';
+            }
+            html += '</div>';
+            
+            container.innerHTML = html;
+            container.style.display = 'block';
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Exportar a Excel
+        async function exportToExcel() {
+            const sessions = await getAllSessions();
+            
+            if (sessions.length === 0) {
+                showNotification('No hay datos para exportar', 'error');
+                return;
+            }
+            
+            const data = [];
+            
+            // Encabezados
+            const headers = ['Fecha', ...ITEMS, 'Observaciones'];
+            data.push(headers);
+            
+            // Datos
+            sessions.sort((a, b) => new Date(a.date) - new Date(b.date));
+            sessions.forEach(session => {
+                const row = [session.date];
+                ITEMS.forEach((item, index) => {
+                    const evaluation = session.evaluations[index] || 'not-evaluated';
+                    row.push(evaluation === 'positive' ? 'Positivo' : evaluation === 'negative' ? 'Negativo' : 'No evaluado');
+                });
+                row.push(session.observations || '');
+                data.push(row);
+            });
+            
+            // Crear libro de Excel
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // Ajustar ancho de columnas
+            const colWidths = [{ wch: 12 }];
+            ITEMS.forEach(() => colWidths.push({ wch: 50 }));
+            colWidths.push({ wch: 40 });
+            ws['!cols'] = colWidths;
+            
+            XLSX.utils.book_append_sheet(wb, ws, 'Evaluaciones');
+            
+            // Descargar
+            XLSX.writeFile(wb, `evaluacion-docente-${new Date().toISOString().split('T')[0]}.xlsx`);
+            showNotification('Excel exportado correctamente');
+        }
+        
+        // Importar datos
+        async function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    // Saltar encabezados
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        if (!row[0]) continue;
+                        
+                        const session = {
+                            date: row[0],
+                            evaluations: {},
+                            observations: row[row.length - 1] || ''
+                        };
+                        
+                        ITEMS.forEach((item, index) => {
+                            const value = row[index + 1];
+                            if (value === 'Positivo') {
+                                session.evaluations[index] = 'positive';
+                            } else if (value === 'Negativo') {
+                                session.evaluations[index] = 'negative';
+                            } else {
+                                session.evaluations[index] = 'not-evaluated';
+                            }
+                        });
+                        
+                        await saveToIndexedDB(session);
+                    }
+                    
+                    showNotification('Datos importados correctamente');
+                    event.target.value = '';
+                } catch (error) {
+                    showNotification('Error al importar datos', 'error');
+                    console.error(error);
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        // Formatear fecha
+        function formatDate(dateString) {
+            const date = new Date(dateString + 'T00:00:00');
+            return date.toLocaleDateString('es-ES', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+        
+        // Mostrar notificación
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            
+            if (type === 'error') {
+                notification.style.background = 'var(--negative)';
+            }
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideInRight 0.4s ease-out reverse';
+                setTimeout(() => notification.remove(), 400);
+            }, 3000);
+        }
+        
+        // Exportar Balance a PDF
+        async function exportBalanceToPDF() {
+            const sessions = await getAllSessions();
+            
+            if (sessions.length === 0) {
+                showNotification('No hay datos para exportar', 'error');
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Calcular resumen
+            const summary = {};
+            ITEMS.forEach((item, index) => {
+                summary[index] = {
+                    item: item,
+                    positive: [],
+                    negative: [],
+                    notEvaluated: []
+                };
+            });
+            
+            sessions.forEach(session => {
+                ITEMS.forEach((item, index) => {
+                    const evaluation = session.evaluations[index] || 'not-evaluated';
+                    if (evaluation === 'positive') {
+                        summary[index].positive.push(session.date);
+                    } else if (evaluation === 'negative') {
+                        summary[index].negative.push(session.date);
+                    } else {
+                        summary[index].notEvaluated.push(session.date);
+                    }
+                });
+            });
+            
+            // Configuración
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 15;
+            const lineHeight = 7;
+            let yPosition = margin;
+            
+            // Función para añadir nueva página si es necesario
+            function checkNewPage() {
+                if (yPosition > pageHeight - margin - 10) {
+                    doc.addPage();
+                    yPosition = margin;
+                    return true;
+                }
+                return false;
+            }
+            
+            // Función para añadir texto con word wrap
+            function addText(text, fontSize, isBold = false, color = [0, 0, 0]) {
+                doc.setFontSize(fontSize);
+                doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+                doc.setTextColor(...color);
+                
+                const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
+                lines.forEach(line => {
+                    checkNewPage();
+                    doc.text(line, margin, yPosition);
+                    yPosition += lineHeight;
+                });
+            }
+            
+            // Título
+            doc.setFontSize(20);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(44, 95, 79); // Color primary
+            doc.text('Balance Final de Evaluación Docente', pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 10;
+            
+            // Fecha del reporte
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(74, 74, 74);
+            doc.text(`Fecha del reporte: ${new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 15;
+            
+            // Línea separadora
+            doc.setDrawColor(44, 95, 79);
+            doc.setLineWidth(0.5);
+            doc.line(margin, yPosition, pageWidth - margin, yPosition);
+            yPosition += 10;
+            
+            // Ítems Evaluados Positivamente
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(74, 157, 111); // Color positive
+            doc.text('✓ Ítems Evaluados Positivamente', margin, yPosition);
+            yPosition += 8;
+            
+            let hasPositive = false;
+            Object.values(summary).forEach(data => {
+                if (data.positive.length > 0) {
+                    hasPositive = true;
+                    checkNewPage();
+                    
+                    // Ítem
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(0, 0, 0);
+                    const itemLines = doc.splitTextToSize(data.item, pageWidth - 2 * margin - 5);
+                    itemLines.forEach(line => {
+                        checkNewPage();
+                        doc.text('• ' + line, margin + 5, yPosition);
+                        yPosition += 5;
+                    });
+                    
+                    // Fechas
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9);
+                    doc.setTextColor(74, 74, 74);
+                    const datesText = 'Fechas: ' + data.positive.map(d => formatDate(d)).join(', ');
+                    const dateLines = doc.splitTextToSize(datesText, pageWidth - 2 * margin - 10);
+                    dateLines.forEach(line => {
+                        checkNewPage();
+                        doc.text(line, margin + 10, yPosition);
+                        yPosition += 5;
+                    });
+                    
+                    yPosition += 3;
+                }
+            });
+            
+            if (!hasPositive) {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'italic');
+                doc.setTextColor(122, 122, 122);
+                doc.text('No hay ítems evaluados positivamente', margin + 5, yPosition);
+                yPosition += 7;
+            }
+            
+            yPosition += 5;
+            checkNewPage();
+            
+            // Ítems Evaluados Negativamente
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(212, 100, 89); // Color negative
+            doc.text('✗ Ítems Evaluados Negativamente', margin, yPosition);
+            yPosition += 8;
+            
+            let hasNegative = false;
+            Object.values(summary).forEach(data => {
+                if (data.negative.length > 0) {
+                    hasNegative = true;
+                    checkNewPage();
+                    
+                    // Ítem
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(0, 0, 0);
+                    const itemLines = doc.splitTextToSize(data.item, pageWidth - 2 * margin - 5);
+                    itemLines.forEach(line => {
+                        checkNewPage();
+                        doc.text('• ' + line, margin + 5, yPosition);
+                        yPosition += 5;
+                    });
+                    
+                    // Fechas
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9);
+                    doc.setTextColor(74, 74, 74);
+                    const datesText = 'Fechas: ' + data.negative.map(d => formatDate(d)).join(', ');
+                    const dateLines = doc.splitTextToSize(datesText, pageWidth - 2 * margin - 10);
+                    dateLines.forEach(line => {
+                        checkNewPage();
+                        doc.text(line, margin + 10, yPosition);
+                        yPosition += 5;
+                    });
+                    
+                    yPosition += 3;
+                }
+            });
+            
+            if (!hasNegative) {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'italic');
+                doc.setTextColor(122, 122, 122);
+                doc.text('No hay ítems evaluados negativamente', margin + 5, yPosition);
+                yPosition += 7;
+            }
+            
+            yPosition += 5;
+            checkNewPage();
+            
+            // Ítems No Evaluados
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(184, 184, 184); // Color neutral
+            doc.text('− Ítems No Evaluados', margin, yPosition);
+            yPosition += 8;
+            
+            let hasNotEvaluated = false;
+            Object.values(summary).forEach(data => {
+                if (data.positive.length === 0 && data.negative.length === 0) {
+                    hasNotEvaluated = true;
+                    checkNewPage();
+                    
+                    // Ítem
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(0, 0, 0);
+                    const itemLines = doc.splitTextToSize(data.item, pageWidth - 2 * margin - 5);
+                    itemLines.forEach(line => {
+                        checkNewPage();
+                        doc.text('• ' + line, margin + 5, yPosition);
+                        yPosition += 5;
+                    });
+                    
+                    // Nota
+                    doc.setFont('helvetica', 'italic');
+                    doc.setFontSize(9);
+                    doc.setTextColor(122, 122, 122);
+                    doc.text('Nunca evaluado en ninguna sesión', margin + 10, yPosition);
+                    yPosition += 5;
+                    
+                    yPosition += 3;
+                }
+            });
+            
+            if (!hasNotEvaluated) {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'italic');
+                doc.setTextColor(122, 122, 122);
+                doc.text('Todos los ítems han sido evaluados al menos una vez', margin + 5, yPosition);
+                yPosition += 7;
+            }
+            
+            // Pie de página en todas las páginas
+            const totalPages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(122, 122, 122);
+                doc.text(
+                    `Página ${i} de ${totalPages}`,
+                    pageWidth / 2,
+                    pageHeight - 10,
+                    { align: 'center' }
+                );
+            }
+            
+            // Guardar
+            doc.save(`balance-evaluacion-${new Date().toISOString().split('T')[0]}.pdf`);
+            showNotification('Balance exportado a PDF correctamente');
+        }
+        
+        // Resetear todos los datos
+        async function resetAllData() {
+            if (!confirm('⚠️ ATENCIÓN: Esta acción eliminará TODAS las sesiones guardadas y no se puede deshacer.\n\n¿Estás seguro de que quieres continuar?')) {
+                return;
+            }
+            
+            // Doble confirmación para mayor seguridad
+            if (!confirm('¿Estás completamente seguro? Se perderán todos los datos guardados.')) {
+                return;
+            }
+            
+            try {
+                const transaction = db.transaction(['sessions'], 'readwrite');
+                const objectStore = transaction.objectStore('sessions');
+                const request = objectStore.clear();
+                
+                request.onsuccess = () => {
+                    showNotification('Todos los datos han sido eliminados');
+                    document.getElementById('summaryContainer').style.display = 'none';
+                    resetForm();
+                };
+                
+                request.onerror = () => {
+                    showNotification('Error al eliminar los datos', 'error');
+                };
+            } catch (error) {
+                showNotification('Error al eliminar los datos', 'error');
+                console.error(error);
+            }
+        }
+        
+        // Inicializar
+        window.addEventListener('DOMContentLoaded', () => {
+            initDB();
+            renderItems();
+            
+            // Establecer fecha de hoy por defecto
+            document.getElementById('sessionDate').valueAsDate = new Date();
+        });
+        
+        // Cerrar modal al hacer clic fuera
+        document.getElementById('sessionsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'sessionsModal') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
