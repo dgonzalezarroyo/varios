@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión Económica</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #141822;
+            --bg-tertiary: #1e2332;
+            --accent-primary: #00d4aa;
+            --accent-secondary: #0099ff;
+            --accent-danger: #ff3366;
+            --text-primary: #e8edf4;
+            --text-secondary: #8b95a8;
+            --border-color: #2a3142;
+            --shadow-soft: rgba(0, 212, 170, 0.1);
+            --shadow-strong: rgba(0, 212, 170, 0.25);
+        }
+
+        body {
+            font-family: 'Crimson Pro', serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(0, 212, 170, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(0, 153, 255, 0.05) 0%, transparent 50%);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+        .card:nth-child(5) { animation-delay: 0.5s; }
+        .card:nth-child(6) { animation-delay: 0.6s; }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 8px 30px var(--shadow-soft);
+            transform: translateY(-2px);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .balance-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin: 0.5rem 0;
+        }
+
+        .balance-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Crimson Pro', serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--shadow-soft);
+        }
+
+        input[type="number"] {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        button {
+            font-family: 'JetBrains Mono', monospace;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px var(--shadow-strong);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-primary);
+        }
+
+        .btn-danger {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        .table-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            animation: fadeInUp 0.6s ease-out 0.7s backwards;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        thead {
+            background: var(--bg-tertiary);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-bar .form-group {
+            flex: 1;
+            min-width: 200px;
+            margin-bottom: 0;
+        }
+
+        .amount-positive {
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .amount-negative {
+            color: var(--accent-danger);
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-caja {
+            background: rgba(0, 212, 170, 0.2);
+            color: var(--accent-primary);
+        }
+
+        .badge-banco {
+            background: rgba(0, 153, 255, 0.2);
+            color: var(--accent-secondary);
+        }
+
+        .badge-ingreso {
+            background: rgba(0, 212, 170, 0.2);
+            color: var(--accent-primary);
+        }
+
+        .badge-gasto {
+            background: rgba(255, 51, 102, 0.2);
+            color: var(--accent-danger);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .summary-item {
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .summary-item h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-item .value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab {
+            font-family: 'JetBrains Mono', monospace;
+            padding: 1rem 1.5rem;
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: -2px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.85rem;
+        }
+
+        .tab:hover {
+            color: var(--accent-primary);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        .tab::before {
+            display: none;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .delete-btn {
+            background: var(--accent-danger);
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .balance-display {
+                font-size: 1.5rem;
+            }
+
+            .filter-bar {
+                flex-direction: column;
+            }
+
+            .filter-bar .form-group {
+                width: 100%;
+            }
+
+            table {
+                font-size: 0.75rem;
+            }
+
+            th, td {
+                padding: 0.5rem;
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent-primary);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 8px 30px var(--shadow-strong);
+            z-index: 1000;
+            animation: slideInRight 0.3s ease-out;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .notification.success {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .notification.error {
+            border-color: var(--accent-danger);
+            color: var(--accent-danger);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Gestión Económica</h1>
+            <p class="subtitle">Sistema de Control Financiero</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('registro')">Registro</button>
+            <button class="tab" onclick="switchTab('saldos')">Saldos Iniciales</button>
+            <button class="tab" onclick="switchTab('balances')">Balances</button>
+            <button class="tab" onclick="switchTab('historial')">Historial</button>
+            <button class="tab" onclick="switchTab('importar')">Importar/Exportar</button>
+        </div>
+
+        <!-- TAB: REGISTRO DE APUNTES -->
+        <div id="tab-registro" class="tab-content active">
+            <div class="grid">
+                <div class="card">
+                    <h2>Nuevo Apunte</h2>
+                    <form id="form-apunte">
+                        <div class="form-group">
+                            <label>Fecha</label>
+                            <input type="date" id="fecha" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Descripción</label>
+                            <textarea id="descripcion" rows="2" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Cantidad (€)</label>
+                            <input type="number" id="cantidad" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Movimiento</label>
+                            <select id="movimiento" required onchange="handleMovimientoChange()">
+                                <option value="">Seleccionar...</option>
+                                <option value="ingreso">Ingreso</option>
+                                <option value="gasto">Gasto</option>
+                                <option value="traspaso_caja_banco">traspaso Caja → Banco</option>
+                                <option value="traspaso_banco_caja">traspaso Banco → Caja</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="tipo-group">
+                            <label>Tipo</label>
+                            <select id="tipo" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="caja">Caja</option>
+                                <option value="banco">Banco</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="partida-group">
+                            <label>Partida</label>
+                            <select id="partida" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="funcionamiento">Funcionamiento</option>
+                                <option value="auxiliares">Auxiliares</option>
+                                <option value="accede">Accede</option>
+                                <option value="1038">1038</option>
+                                <option value="seguro_escolar">Seguro Escolar</option>
+                                <option value="europa">Europa</option>
+                            </select>
+                        </div>
+                        <button type="submit">Guardar Apunte</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: SALDOS INICIALES -->
+        <div id="tab-saldos" class="tab-content">
+            <div class="grid">
+                <div class="card">
+                    <h2>Saldos Iniciales de Caja y Banco</h2>
+                    <form id="form-saldos-caja-banco">
+                        <div class="form-group">
+                            <label>Saldo Inicial Caja (€)</label>
+                            <input type="number" id="saldo-inicial-caja" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Saldo Inicial Banco (€)</label>
+                            <input type="number" id="saldo-inicial-banco" step="0.01" value="0">
+                        </div>
+                        <button type="submit">Guardar Saldos Caja/Banco</button>
+                    </form>
+                    <div class="summary-item" style="margin-top: 1.5rem;">
+                        <h3>Total Saldos Iniciales (Caja + Banco)</h3>
+                        <div class="value" id="total-saldos-caja-banco">0.00 €</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Saldos Iniciales de Partidas</h2>
+                    <form id="form-saldos-partidas">
+                        <div class="form-group">
+                            <label>Funcionamiento (€)</label>
+                            <input type="number" id="saldo-funcionamiento" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Auxiliares (€)</label>
+                            <input type="number" id="saldo-auxiliares" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Accede (€)</label>
+                            <input type="number" id="saldo-accede" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>1038 (€)</label>
+                            <input type="number" id="saldo-1038" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Seguro Escolar (€)</label>
+                            <input type="number" id="saldo-seguro-escolar" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Europa (€)</label>
+                            <input type="number" id="saldo-europa" step="0.01" value="0">
+                        </div>
+                        <button type="submit">Guardar Saldos Partidas</button>
+                    </form>
+                    <div class="summary-item" style="margin-top: 1.5rem;">
+                        <h3>Total Saldos Iniciales Partidas</h3>
+                        <div class="value" id="total-saldos-partidas">0.00 €</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: BALANCES -->
+        <div id="tab-balances" class="tab-content">
+            <div class="card">
+                <h2>Balance General</h2>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <h3>Saldo en Caja</h3>
+                        <div class="value" id="balance-caja">0.00 €</div>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Saldo en Banco</h3>
+                        <div class="value" id="balance-banco">0.00 €</div>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Total (Caja + Banco)</h3>
+                        <div class="value" id="balance-total-caja-banco">0.00 €</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 1.5rem;">
+                <h2>Balance por Partidas</h2>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <h3>Funcionamiento</h3>
+                        <div class="value" id="balance-funcionamiento">0.00 €</div>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Auxiliares</h3>
+                        <div class="value" id="balance-auxiliares">0.00 €</div>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Accede</h3>
+                        <div class="value" id="balance-accede">0.00 €</div>
+                    </div>
+                    <div class="summary-item">
+                        <h3>1038</h3>
+                        <div class="value" id="balance-1038">0.00 €</div>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Seguro Escolar</h3>
+                        <div class="value" id="balance-seguro-escolar">0.00 €</div>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Europa</h3>
+                        <div class="value" id="balance-europa">0.00 €</div>
+                    </div>
+                </div>
+                <div class="summary-item" style="margin-top: 1.5rem; border-left: 3px solid var(--accent-secondary);">
+                    <h3>Total Partidas</h3>
+                    <div class="value" id="balance-total-partidas">0.00 €</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: HISTORIAL -->
+        <div id="tab-historial" class="tab-content">
+            <div class="card">
+                <h2>Historial de Apuntes</h2>
+                
+                <div class="filter-bar">
+                    <div class="form-group">
+                        <label>Filtrar por Tipo</label>
+                        <select id="filter-tipo" onchange="filterHistorial()">
+                            <option value="">Todos</option>
+                            <option value="caja">Caja</option>
+                            <option value="banco">Banco</option>
+                            <option value="traspaso">traspasos</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Filtrar por Partida</label>
+                        <select id="filter-partida" onchange="filterHistorial()">
+                            <option value="">Todas</option>
+                            <option value="funcionamiento">Funcionamiento</option>
+                            <option value="auxiliares">Auxiliares</option>
+                            <option value="accede">Accede</option>
+                            <option value="1038">1038</option>
+                            <option value="seguro_escolar">Seguro Escolar</option>
+                            <option value="europa">Europa</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Filtrar por Movimiento</label>
+                        <select id="filter-movimiento" onchange="filterHistorial()">
+                            <option value="">Todos</option>
+                            <option value="ingreso">Ingresos</option>
+                            <option value="gasto">Gastos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Descripción</th>
+                                <th>Cantidad</th>
+                                <th>Tipo</th>
+                                <th>Partida</th>
+                                <th>Movimiento</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historial-tbody">
+                            <tr>
+                                <td colspan="7" class="empty-state">
+                                    <div class="empty-state-icon">📊</div>
+                                    <p>No hay apuntes registrados</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: IMPORTAR/EXPORTAR -->
+        <div id="tab-importar" class="tab-content">
+            <div class="grid">
+                <div class="card">
+                    <h2>Exportar Datos</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        Descarga tus datos en formato CSV o Excel
+                    </p>
+                    <div class="button-group">
+                        <button onclick="exportarCSV()">Exportar CSV</button>
+                        <button onclick="exportarExcel()" class="btn-secondary">Exportar Excel</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Importar Datos</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        Importa apuntes desde un archivo CSV o Excel
+                    </p>
+                    <div class="form-group">
+                        <label>Seleccionar Archivo</label>
+                        <input type="file" id="file-import" accept=".csv,.xlsx,.xls">
+                    </div>
+                    <button onclick="importarArchivo()">Importar</button>
+                </div>
+
+                <div class="card">
+                    <h2>Gestión de Datos</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        Administra la base de datos
+                    </p>
+                    <div class="button-group">
+                        <button onclick="borrarTodosDatos()" class="btn-danger">Borrar Todos los Datos</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== INDEXEDDB ====================
+        let db;
+        const DB_NAME = 'GestionEconomicaDB';
+        const DB_VERSION = 1;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    db = event.target.result;
+
+                    if (!db.objectStoreNames.contains('apuntes')) {
+                        const apuntesStore = db.createObjectStore('apuntes', { keyPath: 'id', autoIncrement: true });
+                        apuntesStore.createIndex('fecha', 'fecha', { unique: false });
+                        apuntesStore.createIndex('tipo', 'tipo', { unique: false });
+                        apuntesStore.createIndex('partida', 'partida', { unique: false });
+                    }
+
+                    if (!db.objectStoreNames.contains('saldosIniciales')) {
+                        db.createObjectStore('saldosIniciales', { keyPath: 'id' });
+                    }
+                };
+            });
+        }
+
+        function saveApunte(apunte) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['apuntes'], 'readwrite');
+                const store = transaction.objectStore('apuntes');
+                const request = store.add(apunte);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllApuntes() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['apuntes'], 'readonly');
+                const store = transaction.objectStore('apuntes');
+                const request = store.getAll();
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deleteApunte(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['apuntes'], 'readwrite');
+                const store = transaction.objectStore('apuntes');
+                const request = store.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function saveSaldosIniciales(saldos) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['saldosIniciales'], 'readwrite');
+                const store = transaction.objectStore('saldosIniciales');
+                const request = store.put(saldos);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getSaldosIniciales() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['saldosIniciales'], 'readonly');
+                const store = transaction.objectStore('saldosIniciales');
+                const request = store.get('saldos');
+
+                request.onsuccess = () => {
+                    const result = request.result || {
+                        id: 'saldos',
+                        caja: 0,
+                        banco: 0,
+                        funcionamiento: 0,
+                        auxiliares: 0,
+                        accede: 0,
+                        '1038': 0,
+                        seguro_escolar: 0,
+                        europa: 0
+                    };
+                    resolve(result);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function clearAllData() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['apuntes', 'saldosIniciales'], 'readwrite');
+                
+                transaction.objectStore('apuntes').clear();
+                transaction.objectStore('saldosIniciales').clear();
+
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = () => reject(transaction.error);
+            });
+        }
+
+        // ==================== UTILIDADES ====================
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-ES', {
+                style: 'currency',
+                currency: 'EUR'
+            }).format(amount);
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideInRight 0.3s ease-out reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // ==================== TABS ====================
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            if (tabName === 'balances') {
+                calcularBalances();
+            } else if (tabName === 'historial') {
+                cargarHistorial();
+            } else if (tabName === 'saldos') {
+                cargarSaldosIniciales();
+            }
+        }
+
+        // ==================== FORMULARIOS ====================
+        function handleMovimientoChange() {
+            const movimiento = document.getElementById('movimiento').value;
+            const tipoGroup = document.getElementById('tipo-group');
+            const partidaGroup = document.getElementById('partida-group');
+            const tipoSelect = document.getElementById('tipo');
+            const partidaSelect = document.getElementById('partida');
+
+            if (movimiento === 'traspaso_caja_banco' || movimiento === 'traspaso_banco_caja') {
+                tipoGroup.style.display = 'none';
+                partidaGroup.style.display = 'none';
+                tipoSelect.removeAttribute('required');
+                partidaSelect.removeAttribute('required');
+            } else {
+                tipoGroup.style.display = 'block';
+                partidaGroup.style.display = 'block';
+                tipoSelect.setAttribute('required', 'required');
+                partidaSelect.setAttribute('required', 'required');
+            }
+        }
+
+        document.getElementById('form-apunte').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const apunte = {
+                fecha: document.getElementById('fecha').value,
+                descripcion: document.getElementById('descripcion').value,
+                cantidad: parseFloat(document.getElementById('cantidad').value),
+                movimiento: document.getElementById('movimiento').value,
+                tipo: document.getElementById('tipo').value || null,
+                partida: document.getElementById('partida').value || null
+            };
+
+            try {
+                await saveApunte(apunte);
+                showNotification('Apunte guardado correctamente');
+                e.target.reset();
+                document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+                handleMovimientoChange();
+            } catch (error) {
+                showNotification('Error al guardar el apunte', 'error');
+                console.error(error);
+            }
+        });
+
+        document.getElementById('form-saldos-caja-banco').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const saldos = await getSaldosIniciales();
+            saldos.caja = parseFloat(document.getElementById('saldo-inicial-caja').value);
+            saldos.banco = parseFloat(document.getElementById('saldo-inicial-banco').value);
+
+            try {
+                await saveSaldosIniciales(saldos);
+                showNotification('Saldos de caja y banco guardados');
+                actualizarTotalesSaldosIniciales();
+            } catch (error) {
+                showNotification('Error al guardar los saldos', 'error');
+                console.error(error);
+            }
+        });
+
+        document.getElementById('form-saldos-partidas').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const saldos = await getSaldosIniciales();
+            saldos.funcionamiento = parseFloat(document.getElementById('saldo-funcionamiento').value);
+            saldos.auxiliares = parseFloat(document.getElementById('saldo-auxiliares').value);
+            saldos.accede = parseFloat(document.getElementById('saldo-accede').value);
+            saldos['1038'] = parseFloat(document.getElementById('saldo-1038').value);
+            saldos.seguro_escolar = parseFloat(document.getElementById('saldo-seguro-escolar').value);
+            saldos.europa = parseFloat(document.getElementById('saldo-europa').value);
+
+            try {
+                await saveSaldosIniciales(saldos);
+                showNotification('Saldos de partidas guardados');
+                actualizarTotalesSaldosIniciales();
+            } catch (error) {
+                showNotification('Error al guardar los saldos', 'error');
+                console.error(error);
+            }
+        });
+
+        async function cargarSaldosIniciales() {
+            const saldos = await getSaldosIniciales();
+
+            document.getElementById('saldo-inicial-caja').value = saldos.caja;
+            document.getElementById('saldo-inicial-banco').value = saldos.banco;
+            document.getElementById('saldo-funcionamiento').value = saldos.funcionamiento;
+            document.getElementById('saldo-auxiliares').value = saldos.auxiliares;
+            document.getElementById('saldo-accede').value = saldos.accede;
+            document.getElementById('saldo-1038').value = saldos['1038'];
+            document.getElementById('saldo-seguro-escolar').value = saldos.seguro_escolar;
+            document.getElementById('saldo-europa').value = saldos.europa;
+
+            actualizarTotalesSaldosIniciales();
+        }
+
+        async function actualizarTotalesSaldosIniciales() {
+            const saldos = await getSaldosIniciales();
+
+            const totalCajaBanco = saldos.caja + saldos.banco;
+            const totalPartidas = saldos.funcionamiento + saldos.auxiliares + saldos.accede + 
+                                  saldos['1038'] + saldos.seguro_escolar + saldos.europa;
+
+            document.getElementById('total-saldos-caja-banco').textContent = formatCurrency(totalCajaBanco);
+            document.getElementById('total-saldos-partidas').textContent = formatCurrency(totalPartidas);
+        }
+
+        // ==================== BALANCES ====================
+        async function calcularBalances() {
+            const apuntes = await getAllApuntes();
+            const saldos = await getSaldosIniciales();
+
+            let caja = saldos.caja;
+            let banco = saldos.banco;
+            let partidas = {
+                funcionamiento: saldos.funcionamiento,
+                auxiliares: saldos.auxiliares,
+                accede: saldos.accede,
+                '1038': saldos['1038'],
+                seguro_escolar: saldos.seguro_escolar,
+                europa: saldos.europa
+            };
+
+            apuntes.forEach(apunte => {
+                if (apunte.movimiento === 'traspaso_caja_banco') {
+                    caja -= apunte.cantidad;
+                    banco += apunte.cantidad;
+                } else if (apunte.movimiento === 'traspaso_banco_caja') {
+                    banco -= apunte.cantidad;
+                    caja += apunte.cantidad;
+                } else {
+                    const multiplier = apunte.movimiento === 'ingreso' ? 1 : -1;
+                    
+                    if (apunte.tipo === 'caja') {
+                        caja += apunte.cantidad * multiplier;
+                    } else if (apunte.tipo === 'banco') {
+                        banco += apunte.cantidad * multiplier;
+                    }
+
+                    if (apunte.partida) {
+                        partidas[apunte.partida] += apunte.cantidad * multiplier;
+                    }
+                }
+            });
+
+            document.getElementById('balance-caja').textContent = formatCurrency(caja);
+            document.getElementById('balance-banco').textContent = formatCurrency(banco);
+            document.getElementById('balance-total-caja-banco').textContent = formatCurrency(caja + banco);
+            
+            document.getElementById('balance-funcionamiento').textContent = formatCurrency(partidas.funcionamiento);
+            document.getElementById('balance-auxiliares').textContent = formatCurrency(partidas.auxiliares);
+            document.getElementById('balance-accede').textContent = formatCurrency(partidas.accede);
+            document.getElementById('balance-1038').textContent = formatCurrency(partidas['1038']);
+            document.getElementById('balance-seguro-escolar').textContent = formatCurrency(partidas.seguro_escolar);
+            document.getElementById('balance-europa').textContent = formatCurrency(partidas.europa);
+
+            const totalPartidas = partidas.funcionamiento + partidas.auxiliares + partidas.accede + 
+                                  partidas['1038'] + partidas.seguro_escolar + partidas.europa;
+            document.getElementById('balance-total-partidas').textContent = formatCurrency(totalPartidas);
+        }
+
+        // ==================== HISTORIAL ====================
+        async function cargarHistorial() {
+            const apuntes = await getAllApuntes();
+            const tbody = document.getElementById('historial-tbody');
+
+            if (apuntes.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <div class="empty-state-icon">📊</div>
+                            <p>No hay apuntes registrados</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            apuntes.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+            tbody.innerHTML = apuntes.map(apunte => {
+                const istraspaso = apunte.movimiento.includes('traspaso');
+                const tipoDisplay = istraspaso ? 
+                    (apunte.movimiento === 'traspaso_caja_banco' ? 'Caja → Banco' : 'Banco → Caja') :
+                    apunte.tipo;
+                
+                const partidaDisplay = istraspaso ? '-' : 
+                    apunte.partida.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                const movimientoDisplay = istraspaso ? 'traspaso' : apunte.movimiento;
+
+                return `
+                    <tr>
+                        <td>${new Date(apunte.fecha).toLocaleDateString('es-ES')}</td>
+                        <td>${apunte.descripcion}</td>
+                        <td class="${apunte.movimiento === 'ingreso' ? 'amount-positive' : 'amount-negative'}">
+                            ${formatCurrency(apunte.cantidad)}
+                        </td>
+                        <td>
+                            ${tipoDisplay ? `<span class="badge badge-${apunte.tipo}">${tipoDisplay}</span>` : '<span class="badge">traspaso</span>'}
+                        </td>
+                        <td>${partidaDisplay}</td>
+                        <td>
+                            <span class="badge badge-${apunte.movimiento === 'ingreso' ? 'ingreso' : 'gasto'}">
+                                ${movimientoDisplay}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="delete-btn" onclick="eliminarApunte(${apunte.id})">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function filterHistorial() {
+            const filterTipo = document.getElementById('filter-tipo').value;
+            const filterPartida = document.getElementById('filter-partida').value;
+            const filterMovimiento = document.getElementById('filter-movimiento').value;
+
+            let apuntes = await getAllApuntes();
+
+            if (filterTipo) {
+                if (filterTipo === 'traspaso') {
+                    apuntes = apuntes.filter(a => a.movimiento.includes('traspaso'));
+                } else {
+                    apuntes = apuntes.filter(a => a.tipo === filterTipo);
+                }
+            }
+
+            if (filterPartida) {
+                apuntes = apuntes.filter(a => a.partida === filterPartida);
+            }
+
+            if (filterMovimiento) {
+                apuntes = apuntes.filter(a => a.movimiento === filterMovimiento);
+            }
+
+            const tbody = document.getElementById('historial-tbody');
+
+            if (apuntes.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <div class="empty-state-icon">🔍</div>
+                            <p>No se encontraron apuntes con los filtros seleccionados</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            apuntes.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+            tbody.innerHTML = apuntes.map(apunte => {
+                const istraspaso = apunte.movimiento.includes('traspaso');
+                const tipoDisplay = istraspaso ? 
+                    (apunte.movimiento === 'traspaso_caja_banco' ? 'Caja → Banco' : 'Banco → Caja') :
+                    apunte.tipo;
+                
+                const partidaDisplay = istraspaso ? '-' : 
+                    apunte.partida.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                const movimientoDisplay = istraspaso ? 'traspaso' : apunte.movimiento;
+
+                return `
+                    <tr>
+                        <td>${new Date(apunte.fecha).toLocaleDateString('es-ES')}</td>
+                        <td>${apunte.descripcion}</td>
+                        <td class="${apunte.movimiento === 'ingreso' ? 'amount-positive' : 'amount-negative'}">
+                            ${formatCurrency(apunte.cantidad)}
+                        </td>
+                        <td>
+                            ${tipoDisplay ? `<span class="badge badge-${apunte.tipo}">${tipoDisplay}</span>` : '<span class="badge">traspaso</span>'}
+                        </td>
+                        <td>${partidaDisplay}</td>
+                        <td>
+                            <span class="badge badge-${apunte.movimiento === 'ingreso' ? 'ingreso' : 'gasto'}">
+                                ${movimientoDisplay}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="delete-btn" onclick="eliminarApunte(${apunte.id})">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function eliminarApunte(id) {
+            if (!confirm('¿Estás seguro de que deseas eliminar este apunte?')) {
+                return;
+            }
+
+            try {
+                await deleteApunte(id);
+                showNotification('Apunte eliminado correctamente');
+                cargarHistorial();
+            } catch (error) {
+                showNotification('Error al eliminar el apunte', 'error');
+                console.error(error);
+            }
+        }
+
+        // ==================== EXPORTAR/IMPORTAR ====================
+        async function exportarCSV() {
+            const apuntes = await getAllApuntes();
+            const saldos = await getSaldosIniciales();
+            
+            if (apuntes.length === 0 && Object.keys(saldos).length === 0) {
+                showNotification('No hay datos para exportar', 'error');
+                return;
+            }
+
+            // Crear CSV con saldos iniciales
+            let csv = 'SALDOS_INICIALES\n';
+            csv += 'Concepto,Valor\n';
+            csv += `Caja,${saldos.caja}\n`;
+            csv += `Banco,${saldos.banco}\n`;
+            csv += `Funcionamiento,${saldos.funcionamiento}\n`;
+            csv += `Auxiliares,${saldos.auxiliares}\n`;
+            csv += `Accede,${saldos.accede}\n`;
+            csv += `1038,${saldos['1038']}\n`;
+            csv += `Seguro_Escolar,${saldos.seguro_escolar}\n`;
+            csv += `Europa,${saldos.europa}\n`;
+            csv += '\n';
+            
+            // Añadir apuntes
+            csv += 'APUNTES\n';
+            csv += 'Fecha,Descripción,Cantidad,Tipo,Partida,Movimiento\n';
+            
+            apuntes.forEach(apunte => {
+                const tipo = apunte.tipo || (apunte.movimiento.includes('traspaso') ? 'traspaso' : '');
+                const partida = apunte.partida || '-';
+                csv += `${apunte.fecha},"${apunte.descripcion}",${apunte.cantidad},${tipo},${partida},${apunte.movimiento}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `gestion-economica-${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+
+            showNotification('Datos y saldos exportados a CSV correctamente');
+        }
+
+        async function exportarExcel() {
+            const apuntes = await getAllApuntes();
+            const saldos = await getSaldosIniciales();
+            
+            if (apuntes.length === 0 && Object.keys(saldos).length === 0) {
+                showNotification('No hay datos para exportar', 'error');
+                return;
+            }
+
+            // Crear hoja de saldos iniciales
+            const saldosData = [
+                { 'Concepto': 'Caja', 'Valor': saldos.caja },
+                { 'Concepto': 'Banco', 'Valor': saldos.banco },
+                { 'Concepto': 'Funcionamiento', 'Valor': saldos.funcionamiento },
+                { 'Concepto': 'Auxiliares', 'Valor': saldos.auxiliares },
+                { 'Concepto': 'Accede', 'Valor': saldos.accede },
+                { 'Concepto': '1038', 'Valor': saldos['1038'] },
+                { 'Concepto': 'Seguro Escolar', 'Valor': saldos.seguro_escolar },
+                { 'Concepto': 'Europa', 'Valor': saldos.europa }
+            ];
+
+            // Crear hoja de apuntes
+            const apuntesData = apuntes.map(apunte => ({
+                'Fecha': apunte.fecha,
+                'Descripción': apunte.descripcion,
+                'Cantidad': apunte.cantidad,
+                'Tipo': apunte.tipo || (apunte.movimiento.includes('traspaso') ? 'traspaso' : ''),
+                'Partida': apunte.partida || '-',
+                'Movimiento': apunte.movimiento
+            }));
+
+            const wb = XLSX.utils.book_new();
+            
+            // Añadir hoja de saldos iniciales
+            const wsSaldos = XLSX.utils.json_to_sheet(saldosData);
+            XLSX.utils.book_append_sheet(wb, wsSaldos, 'Saldos Iniciales');
+            
+            // Añadir hoja de apuntes
+            const wsApuntes = XLSX.utils.json_to_sheet(apuntesData);
+            XLSX.utils.book_append_sheet(wb, wsApuntes, 'Apuntes');
+
+            XLSX.writeFile(wb, `gestion-economica-${new Date().toISOString().split('T')[0]}.xlsx`);
+
+            showNotification('Datos y saldos exportados a Excel correctamente');
+        }
+
+        async function importarArchivo() {
+            const fileInput = document.getElementById('file-import');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showNotification('Por favor selecciona un archivo', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = async (e) => {
+                try {
+                    let apuntes = [];
+                    let saldos = null;
+
+                    if (file.name.endsWith('.csv')) {
+                        const text = e.target.result;
+                        const lines = text.split('\n');
+                        
+                        let currentSection = '';
+                        let saldosData = {};
+                        
+                        for (let i = 0; i < lines.length; i++) {
+                            const line = lines[i].trim();
+                            
+                            if (line === 'SALDOS_INICIALES') {
+                                currentSection = 'saldos';
+                                i++; // Skip header line
+                                continue;
+                            } else if (line === 'APUNTES') {
+                                currentSection = 'apuntes';
+                                i++; // Skip header line
+                                continue;
+                            }
+                            
+                            if (!line) continue;
+                            
+                            if (currentSection === 'saldos') {
+                                const [concepto, valor] = line.split(',').map(s => s.trim());
+                                const key = concepto.toLowerCase().replace(/ /g, '_');
+                                saldosData[key] = parseFloat(valor);
+                            } else if (currentSection === 'apuntes') {
+                                const [fecha, descripcion, cantidad, tipo, partida, movimiento] = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+                                if (fecha && descripcion) {
+                                    apuntes.push({
+                                        fecha,
+                                        descripcion,
+                                        cantidad: parseFloat(cantidad),
+                                        tipo: tipo === 'traspaso' ? null : tipo,
+                                        partida: partida === '-' ? null : partida,
+                                        movimiento
+                                    });
+                                }
+                            }
+                        }
+                        
+                        if (Object.keys(saldosData).length > 0) {
+                            saldos = {
+                                id: 'saldos',
+                                caja: saldosData.caja || 0,
+                                banco: saldosData.banco || 0,
+                                funcionamiento: saldosData.funcionamiento || 0,
+                                auxiliares: saldosData.auxiliares || 0,
+                                accede: saldosData.accede || 0,
+                                '1038': saldosData['1038'] || 0,
+                                seguro_escolar: saldosData.seguro_escolar || 0,
+                                europa: saldosData.europa || 0
+                            };
+                        }
+                    } else {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Leer saldos iniciales si existe la hoja
+                        if (workbook.SheetNames.includes('Saldos Iniciales')) {
+                            const saldosSheet = workbook.Sheets['Saldos Iniciales'];
+                            const saldosJson = XLSX.utils.sheet_to_json(saldosSheet);
+                            
+                            saldos = { id: 'saldos' };
+                            saldosJson.forEach(row => {
+                                const key = row['Concepto'].toLowerCase().replace(/ /g, '_');
+                                saldos[key] = parseFloat(row['Valor']);
+                            });
+                        }
+                        
+                        // Leer apuntes
+                        if (workbook.SheetNames.includes('Apuntes')) {
+                            const apuntesSheet = workbook.Sheets['Apuntes'];
+                            const jsonData = XLSX.utils.sheet_to_json(apuntesSheet);
+
+                            apuntes = jsonData.map(row => ({
+                                fecha: row['Fecha'],
+                                descripcion: row['Descripción'],
+                                cantidad: parseFloat(row['Cantidad']),
+                                tipo: row['Tipo'] === 'traspaso' ? null : row['Tipo'],
+                                partida: row['Partida'] === '-' ? null : row['Partida'],
+                                movimiento: row['Movimiento']
+                            }));
+                        }
+                    }
+
+                    // Guardar saldos si existen
+                    if (saldos) {
+                        await saveSaldosIniciales(saldos);
+                    }
+
+                    // Guardar apuntes
+                    for (const apunte of apuntes) {
+                        await saveApunte(apunte);
+                    }
+
+                    let mensaje = [];
+                    if (saldos) mensaje.push('saldos iniciales');
+                    if (apuntes.length > 0) mensaje.push(`${apuntes.length} apuntes`);
+                    
+                    showNotification(`Importados: ${mensaje.join(' y ')}`);
+                    fileInput.value = '';
+                    
+                    // Actualizar vistas
+                    cargarSaldosIniciales();
+                    cargarHistorial();
+                    calcularBalances();
+                } catch (error) {
+                    showNotification('Error al importar el archivo', 'error');
+                    console.error(error);
+                }
+            };
+
+            if (file.name.endsWith('.csv')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        async function borrarTodosDatos() {
+            if (!confirm('⚠️ ADVERTENCIA: Esto eliminará TODOS los datos (apuntes y saldos iniciales). Esta acción no se puede deshacer. ¿Estás seguro?')) {
+                return;
+            }
+
+            if (!confirm('¿Estás COMPLETAMENTE seguro? Esta es tu última oportunidad para cancelar.')) {
+                return;
+            }
+
+            try {
+                await clearAllData();
+                showNotification('Todos los datos han sido eliminados');
+                cargarHistorial();
+                calcularBalances();
+                cargarSaldosIniciales();
+            } catch (error) {
+                showNotification('Error al borrar los datos', 'error');
+                console.error(error);
+            }
+        }
+
+        // ==================== INICIALIZACIÓN ====================
+        async function init() {
+            await initDB();
+            document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+            handleMovimientoChange();
+            cargarSaldosIniciales();
+        }
+
+        init();
+    </script>
+</body>
+</html>
