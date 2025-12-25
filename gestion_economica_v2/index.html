@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Gestión Económica Local</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --bg:#f6f8fa; --panel:#fff; --text:#1f2937; --muted:#6b7280; --primary:#2563eb; --danger:#ef4444; --ok:#16a34a; --border:#e5e7eb; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; background: var(--bg); color: var(--text); margin:0; line-height:1.45; }
+    header { background: var(--panel); border-bottom:1px solid var(--border); padding:1rem 1.25rem; position:sticky; top:0; z-index:10; }
+    header h1 { margin:0; font-size:1.25rem; }
+    main { max-width:1100px; margin:1rem auto; padding:0 1rem; }
+    section { background: var(--panel); border:1px solid var(--border); border-radius:12px; margin:1rem 0; padding:1rem; }
+    section h2 { margin-top:0; }
+    .grid { display:grid; gap:.75rem; }
+    .grid.cols-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .grid.cols-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .grid.cols-4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    label { font-size:.9rem; color:var(--muted); display:block; margin-bottom:.25rem; }
+    input[type="text"], input[type="date"], input[type="number"], select, textarea { width:100%; padding:.5rem .6rem; border:1px solid var(--border); border-radius:8px; font-size:.95rem; background:#fff; }
+    textarea { min-height:64px; }
+    .row { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+    .btn { appearance:none; border:1px solid var(--border); background:var(--panel); padding:.5rem .75rem; border-radius:10px; font-weight:600; cursor:pointer; }
+    .btn.primary { background: var(--primary); color:#fff; border-color: var(--primary); }
+    .btn.ok { background: var(--ok); color:#fff; border-color: var(--ok); }
+    .btn.danger { background: var(--danger); color:#fff; border-color: var(--danger); }
+    .btn.small { font-size:.85rem; padding:.4rem .6rem; }
+    .info { color:var(--muted); font-size:.9rem; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border-bottom:1px solid var(--border); padding:.5rem .4rem; text-align:left; }
+    tfoot td { font-weight:700; }
+    .badge { display:inline-block; padding:.25rem .5rem; border-radius:999px; font-size:.8rem; border:1px solid var(--border); background:#f9fafb; }
+    .hidden { display:none !important; }
+    .section-actions { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.5rem; }
+    @media print { body * { visibility:hidden !important; } #print-container, #print-container * { visibility:visible !important; } #print-container { position:absolute; left:0; top:0; width:100%; }
+    }
+  </style>
+  <!-- (Opcional) Excel .xlsx: coloca xlsx.full.min.js junto a este archivo y descomenta la línea siguiente -->
+  <script src="xlsx.full.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Gestión económica (local, IndexedDB) — Caja / Banco / Partidas</h1>
+    <div class="info">Tus datos se guardan automáticamente en IndexedDB del navegador. Funciona sin Internet ni servidor.</div>
+  </header>
+  <main>
+    <!-- Saldos iniciales -->
+    <section id="sec-saldos">
+      <h2>Saldos iniciales</h2>
+      <div class="grid cols-2">
+        <div>
+          <label>Saldo inicial en <strong>caja</strong> (€)</label>
+          <input type="number" id="init-caja" step="0.01" placeholder="0.00">
+        </div>
+        <div>
+          <label>Saldo inicial en <strong>banco</strong> (€)</label>
+          <input type="number" id="init-banco" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+      <h3>Saldo inicial por partida (independiente de caja/banco)</h3>
+      <div id="partidas-init" class="grid cols-3"></div>
+      <div class="row" style="margin-top:.5rem;">
+        <span class="badge" id="sum-caja-banco">Caja+Banco inicial: €0.00</span>
+        <span class="badge" id="sum-partidas">Total partidas inicial: €0.00</span>
+      </div>
+      <div class="section-actions">
+        <button class="btn ok" id="btn-save-inits">Guardar saldos iniciales</button>
+        <button class="btn" onclick="printSection('sec-saldos')">Generar PDF</button>
+        <button class="btn" id="btn-exp-init">Exportar saldos iniciales (CSV/Excel)</button>
+        <label class="btn small" style="cursor:pointer;">
+          Importar saldos (CSV/Excel)
+          <input type="file" id="file-imp-init" accept=".csv,.xlsx,.xls" class="hidden">
+        </label>
+      </div>
+    </section>
+
+    <!-- Añadir apuntes -->
+    <section id="sec-apuntes">
+      <h2>Añadir apunte</h2>
+      <div class="row">
+        <label><input type="radio" name="apunte-mode" value="normal" checked> Apunte normal (con partida)</label>
+        <label><input type="radio" name="apunte-mode" value="traspaso"> Traspaso (entre caja y banco, sin partida)</label>
+      </div>
+      <form id="form-apunte" class="grid cols-3" style="margin-top:.75rem;">
+        <div>
+          <label>Fecha</label>
+          <input type="date" id="ap-fecha" required>
+        </div>
+        <div>
+          <label>Descripción</label>
+          <input type="text" id="ap-desc" placeholder="Detalle del apunte" required>
+        </div>
+        <div>
+          <label>Cantidad (€) — se permiten valores negativos</label>
+          <input type="number" id="ap-importe" step="0.01" required>
+        </div>
+        <div class="ap-normal">
+          <label>Tipo</label>
+          <select id="ap-tipo" required>
+            <option value="caja">Caja</option>
+            <option value="banco">Banco</option>
+          </select>
+        </div>
+        <div class="ap-normal">
+          <label>Partida</label>
+          <select id="ap-partida" required></select>
+        </div>
+        <div class="ap-normal">
+          <label>Movimiento</label>
+          <select id="ap-mov" required>
+            <option value="ingreso">Ingreso</option>
+            <option value="pago">Pago</option>
+          </select>
+        </div>
+        <div class="ap-traspaso hidden">
+          <label>De</label>
+          <select id="tr-de">
+            <option value="caja">Caja</option>
+            <option value="banco">Banco</option>
+          </select>
+        </div>
+        <div class="ap-traspaso hidden">
+          <label>A</label>
+          <select id="tr-a">
+            <option value="banco">Banco</option>
+            <option value="caja">Caja</option>
+          </select>
+        </div>
+        <div class="ap-traspaso hidden">
+          <label>Movimiento</label>
+          <input type="text" value="Traspaso (sin partida)" disabled>
+        </div>
+        <div style="grid-column: 1 / -1;">
+          <button type="submit" class="btn primary">Guardar apunte</button>
+        </div>
+      </form>
+      <div class="info">Los apuntes se guardan automáticamente en IndexedDB.</div>
+    </section>
+
+    <!-- Balances -->
+    <section id="sec-balances">
+      <h2>Balances</h2>
+      <div class="grid cols-3">
+        <div>
+          <h3>Saldo en caja</h3>
+          <div id="bal-caja" class="badge">€0.00</div>
+        </div>
+        <div>
+          <h3>Saldo en banco</h3>
+          <div id="bal-banco" class="badge">€0.00</div>
+        </div>
+        <div>
+          <h3>Total Caja+Banco</h3>
+          <div id="bal-total-cb" class="badge">€0.00</div>
+        </div>
+      </div>
+      <h3>Saldo por partida</h3>
+      <table id="tbl-partidas">
+        <thead>
+          <tr><th>Partida</th><th>Saldo</th></tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr><td>Total partidas</td><td id="bal-partidas-total">€0.00</td></tr>
+        </tfoot>
+      </table>
+      <div class="row" style="margin-top:.5rem;">
+        <span class="badge" id="sum-bal-partidas">Suma balances partidas: €0.00</span>
+      </div>
+      <div class="section-actions">
+        <button class="btn" onclick="printSection('sec-balances')">Generar PDF</button>
+      </div>
+    </section>
+
+    <!-- Historial -->
+    <section id="sec-historial">
+      <h2>Historial de apuntes</h2>
+      <div class="grid cols-3">
+        <div>
+          <label>Filtrar por tipo</label>
+          <select id="f-tipo">
+            <option value="todos">Todos</option>
+            <option value="caja">Caja</option>
+            <option value="banco">Banco</option>
+          </select>
+        </div>
+        <div>
+          <label>Filtrar por partida</label>
+          <select id="f-partida">
+            <option value="todas">Todas</option>
+          </select>
+        </div>
+        <div>
+          <label>Buscar texto (descripción)</label>
+          <input type="text" id="f-buscar" placeholder="Palabras clave">
+        </div>
+      </div>
+      <table id="tbl-historial" style="margin-top:.75rem;">
+        <thead>
+          <tr>
+            <th>Fecha</th><th>Descripción</th><th>Cantidad</th><th>Tipo</th><th>Partida</th><th>Movimiento</th><th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr><td colspan="2">Total visible</td><td id="hist-total">€0.00</td><td colspan="4"></td></tr>
+        </tfoot>
+      </table>
+      <div class="section-actions">
+        <button class="btn" onclick="printSection('sec-historial')">Generar PDF</button>
+        <button class="btn" id="btn-exp-apuntes">Exportar apuntes (CSV/Excel)</button>
+        <label class="btn small" style="cursor:pointer;">
+          Importar apuntes (CSV/Excel)
+          <input type="file" id="file-imp-apuntes" accept=".csv,.xlsx,.xls" class="hidden">
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <div id="print-container" class="hidden"></div>
+
+<script>
+// ==========================
+// Configuración
+// ==========================
+const PARTIDAS = ["funcionamiento","auxiliares","accede","1038","seguro escolar","europa"];
+const DB_NAME = "gestionEconomicaDB";
+const DB_VERSION = 1;
+let db;
+
+// Utils
+const fmtMoney = n => "€" + (Number(n||0).toLocaleString("es-ES", {minimumFractionDigits:2, maximumFractionDigits:2}));
+const parseNum = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+
+// ==========================
+// IndexedDB
+// ==========================
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const dbu = e.target.result;
+      if (!dbu.objectStoreNames.contains("settings")) {
+        dbu.createObjectStore("settings", { keyPath: "id" });
+      }
+      if (!dbu.objectStoreNames.contains("entries")) {
+        const store = dbu.createObjectStore("entries", { keyPath: "id", autoIncrement: true });
+        store.createIndex("by_fecha", "fecha", { unique:false });
+        store.createIndex("by_tipo", "tipo", { unique:false });
+        store.createIndex("by_partida", "partida", { unique:false });
+        store.createIndex("by_movimiento", "movimiento", { unique:false });
+      }
+    };
+    req.onsuccess = () => { db = req.result; resolve(db); };
+    req.onerror = () => reject(req.error);
+  });
+}
+function getSettings(){
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction("settings","readonly");
+    const st = tx.objectStore("settings");
+    const req = st.get("singleton");
+    req.onsuccess = () => {
+      let val = req.result?.value;
+      if (!val) {
+        val = { initCaja:0, initBanco:0, initPartidas: Object.fromEntries(PARTIDAS.map(p=>[p,0])) };
+      }
+      resolve(val);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+function saveSettings(value){
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction("settings","readwrite");
+    tx.objectStore("settings").put({id:"singleton", value});
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function addEntry(entry){
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction("entries","readwrite");
+    tx.objectStore("entries").add(entry);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function deleteEntry(id){
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction("entries","readwrite");
+    tx.objectStore("entries").delete(id);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function getAllEntries(){
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction("entries","readonly");
+    const req = tx.objectStore("entries").getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// ==========================
+// Estado
+// ==========================
+let SETTINGS = null;
+let ENTRIES = [];
+
+// ==========================
+// UI
+// ==========================
+function initUI(){
+  // Partidas en selects
+  const selPartida = document.getElementById("ap-partida");
+  PARTIDAS.forEach(p=>{ const o=document.createElement("option"); o.value=p; o.textContent=p; selPartida.appendChild(o); });
+  const fPartida = document.getElementById("f-partida");
+  PARTIDAS.forEach(p=>{ const o=document.createElement("option"); o.value=p; o.textContent=p; fPartida.appendChild(o); });
+
+  // Inputs iniciales por partida
+  const cont = document.getElementById("partidas-init");
+  PARTIDAS.forEach(p=>{
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `<label>Partida: <strong>${p}</strong></label><input type="number" class="init-partida" data-p="${p}" step="0.01" placeholder="0.00">`;
+    cont.appendChild(wrap);
+  });
+
+  // Modo apunte
+  document.querySelectorAll('input[name="apunte-mode"]').forEach(r=>{
+    r.addEventListener('change', ()=>{
+      const mode = document.querySelector('input[name="apunte-mode"]:checked').value;
+      document.querySelectorAll('.ap-normal').forEach(el=>el.classList.toggle('hidden', mode!=="normal"));
+      document.querySelectorAll('.ap-traspaso').forEach(el=>el.classList.toggle('hidden', mode!=="traspaso"));
+    });
+  });
+
+  // Guardar apunte
+  document.getElementById("form-apunte").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const fecha = document.getElementById("ap-fecha").value;
+    const descripcion = document.getElementById("ap-desc").value.trim();
+    const cantidad = parseNum(document.getElementById("ap-importe").value);
+    const mode = document.querySelector('input[name="apunte-mode"]:checked').value;
+    if (!fecha || !descripcion || cantidad === 0) { alert("Completa fecha, descripción y una cantidad distinta de 0 (se permiten negativas)."); return; }
+    let entry;
+    if (mode === "normal") {
+      const tipo = document.getElementById("ap-tipo").value;
+      const partida = document.getElementById("ap-partida").value;
+      const movimiento = document.getElementById("ap-mov").value; // ingreso | pago
+      entry = { fecha, descripcion, cantidad, tipo, partida, movimiento };
+    } else {
+      const de = document.getElementById("tr-de").value;
+      const a = document.getElementById("tr-a").value;
+      if (de === a) { alert("El traspaso debe ser entre diferentes (caja ↔ banco)."); return; }
+      entry = { fecha, descripcion, cantidad, movimiento:"traspaso", de, a };
+    }
+    try { await addEntry(entry); ENTRIES = await getAllEntries(); renderAll(); e.target.reset(); }
+    catch(err){ console.error(err); alert("Error al guardar el apunte."); }
+  });
+
+  // Guardar saldos iniciales
+  document.getElementById("btn-save-inits").addEventListener("click", async ()=>{
+    const initCaja = parseNum(document.getElementById("init-caja").value);
+    const initBanco = parseNum(document.getElementById("init-banco").value);
+    const initPartidas = Object.fromEntries(Array.from(document.querySelectorAll('.init-partida')).map(inp=>[inp.dataset.p, parseNum(inp.value)]));
+    SETTINGS = { initCaja, initBanco, initPartidas };
+    try { await saveSettings(SETTINGS); renderAll(); alert("Saldos iniciales guardados."); }
+    catch(err){ console.error(err); alert("Error al guardar saldos iniciales."); }
+  });
+
+  // Exportar/Importar saldos
+  document.getElementById("btn-exp-init").addEventListener('click', exportInits);
+  document.getElementById("file-imp-init").addEventListener('change', async (e)=>{ const f=e.target.files[0]; if(!f) return; await importInits(f); e.target.value=""; });
+
+  // Exportar/Importar apuntes
+  document.getElementById("btn-exp-apuntes").addEventListener('click', exportEntries);
+  document.getElementById("file-imp-apuntes").addEventListener('change', async (e)=>{ const f=e.target.files[0]; if(!f) return; await importEntries(f); e.target.value=""; });
+
+  // Filtros historial
+  ["f-tipo","f-partida","f-buscar"].forEach(id=>{ document.getElementById(id).addEventListener('input', renderHistorial); });
+}
+
+// ==========================
+// Render
+// ==========================
+function renderSaldosIniciales(){
+  document.getElementById("init-caja").value = SETTINGS.initCaja ?? 0;
+  document.getElementById("init-banco").value = SETTINGS.initBanco ?? 0;
+  document.querySelectorAll('.init-partida').forEach(inp=>{ const p=inp.dataset.p; inp.value = SETTINGS.initPartidas?.[p] ?? 0; });
+  const sumCB = (SETTINGS.initCaja||0) + (SETTINGS.initBanco||0);
+  const sumP = Object.values(SETTINGS.initPartidas||{}).reduce((a,b)=>a+Number(b||0),0);
+  document.getElementById("sum-caja-banco").textContent = `Caja+Banco inicial: ${fmtMoney(sumCB)}`;
+  document.getElementById("sum-partidas").textContent = `Total partidas inicial: ${fmtMoney(sumP)}`;
+}
+
+function computeBalances(){
+  let saldoCaja = SETTINGS.initCaja||0;
+  let saldoBanco = SETTINGS.initBanco||0;
+  const partSaldos = {...(SETTINGS.initPartidas||{})};
+  ENTRIES.forEach(e=>{
+    if (e.movimiento === "traspaso") {
+      if (e.de === "caja" && e.a === "banco") { saldoCaja -= e.cantidad; saldoBanco += e.cantidad; }
+      if (e.de === "banco" && e.a === "caja") { saldoBanco -= e.cantidad; saldoCaja += e.cantidad; }
+      return; // no afecta partidas
+    }
+    const signed = (e.movimiento === "ingreso" ? +e.cantidad : -e.cantidad);
+    if (e.tipo === "caja")  saldoCaja  += signed;
+    if (e.tipo === "banco") saldoBanco += signed;
+    if (e.partida) {
+      partSaldos[e.partida] = (partSaldos[e.partida]||0) + signed;
+    }
+  });
+  return { saldoCaja, saldoBanco, partSaldos };
+}
+
+function renderBalances(){
+  const { saldoCaja, saldoBanco, partSaldos } = computeBalances();
+  document.getElementById("bal-caja").textContent = fmtMoney(saldoCaja);
+  document.getElementById("bal-banco").textContent = fmtMoney(saldoBanco);
+  document.getElementById("bal-total-cb").textContent = fmtMoney(saldoCaja + saldoBanco);
+  const tbody = document.querySelector('#tbl-partidas tbody');
+  tbody.innerHTML = '';
+  let totalPartidas = 0;
+  PARTIDAS.forEach(p=>{ const val = partSaldos[p]||0; totalPartidas += val; const tr=document.createElement('tr'); tr.innerHTML = `<td>${p}</td><td>${fmtMoney(val)}</td>`; tbody.appendChild(tr); });
+  document.getElementById('bal-partidas-total').textContent = fmtMoney(totalPartidas);
+  document.getElementById('sum-bal-partidas').textContent = `Suma balances partidas: ${fmtMoney(totalPartidas)}`;
+}
+
+function renderHistorial(){
+  const ftipo = document.getElementById('f-tipo').value;
+  const fpartida = document.getElementById('f-partida').value;
+  const fbusc = document.getElementById('f-buscar').value.trim().toLowerCase();
+  const tbody = document.querySelector('#tbl-historial tbody');
+  tbody.innerHTML = '';
+  let totalVisible = 0;
+  const sorted = [...ENTRIES].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+  sorted.forEach(e=>{
+    // Filtros
+    if (ftipo !== 'todos') {
+      if (e.movimiento !== 'traspaso' && e.tipo !== ftipo) return;
+    }
+    if (fpartida !== 'todas') {
+      if (e.movimiento === 'traspaso') return; // traspasos no tienen partida
+      if (e.partida !== fpartida) return;
+    }
+    if (fbusc) {
+      const hay = (e.descripcion||'').toLowerCase().includes(fbusc);
+      if (!hay) return;
+    }
+    const tr = document.createElement('tr');
+    if (e.movimiento === 'traspaso') {
+      tr.innerHTML = `<td>${e.fecha||''}</td><td>${e.descripcion||''}</td><td>${fmtMoney(e.cantidad||0)}</td><td>—</td><td>—</td><td>Traspaso: ${e.de} → ${e.a}</td><td><button class='btn small danger' data-del='${e.id}'>Borrar</button></td>`;
+      // Los traspasos no afectan el total visible de ingresos/pagos
+    } else {
+      tr.innerHTML = `<td>${e.fecha||''}</td><td>${e.descripcion||''}</td><td>${fmtMoney(e.cantidad||0)}</td><td>${e.tipo}</td><td>${e.partida}</td><td>${e.movimiento}</td><td><button class='btn small danger' data-del='${e.id}'>Borrar</button></td>`;
+      const signed = (e.movimiento === 'ingreso' ? +e.cantidad : -e.cantidad);
+      totalVisible += signed;
+    }
+    tbody.appendChild(tr);
+  });
+  document.getElementById('hist-total').textContent = fmtMoney(totalVisible);
+  // Borrado
+  tbody.querySelectorAll('button[data-del]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = Number(btn.dataset.del);
+      if (!confirm('¿Seguro que quieres borrar este apunte?')) return;
+      await deleteEntry(id);
+      ENTRIES = await getAllEntries();
+      renderAll();
+    });
+  });
+}
+
+function renderAll(){ renderSaldosIniciales(); renderBalances(); renderHistorial(); }
+
+// ==========================
+// Export/Import
+// ==========================
+function downloadFile(name, mime, contentBlob){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(contentBlob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+function toCSVRow(arr){
+  return arr.map(v => {
+    let s = (v===null||v===undefined) ? '' : String(v);
+    if (s.includes('"') || s.includes(',') || s.includes('\n')) {
+      s = '"' + s.replace(/"/g,'""') + '"';
+    }
+    return s;
+  }).join(',');
+}
+function exportInits(){
+  const headers = ["initCaja","initBanco",...PARTIDAS.map(p=>`partida:${p}`)];
+  const row = [SETTINGS.initCaja||0, SETTINGS.initBanco||0, ...PARTIDAS.map(p=>SETTINGS.initPartidas?.[p]||0)];
+  const csv = [toCSVRow(headers), toCSVRow(row)].join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  if (window.XLSX) {
+    const wsData = [headers, row]; const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(wsData); XLSX.utils.book_append_sheet(wb, ws, 'SaldosIniciales'); const xblob = XLSX.write(wb, {bookType:'xlsx', type:'array'}); downloadFile('saldos_iniciales.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', new Blob([xblob]));
+  } else {
+    downloadFile('saldos_iniciales.csv','text/csv', blob);
+  }
+}
+async function importInits(file){
+  const name = file.name.toLowerCase();
+  if ((name.endsWith('.xlsx') || name.endsWith('.xls')) && window.XLSX) {
+    const buf = await file.arrayBuffer(); const wb = XLSX.read(buf, {type:'array'}); const ws = wb.Sheets[wb.SheetNames[0]]; const data = XLSX.utils.sheet_to_json(ws, {header:1}); const headers = data[0]||[], row = data[1]||[]; const hmap = Object.fromEntries(headers.map((h,i)=>[h,i])); const initCaja = parseNum(row[hmap['initCaja']]); const initBanco = parseNum(row[hmap['initBanco']]); const initPartidas = Object.fromEntries(PARTIDAS.map(p=>[p, parseNum(row[hmap[`partida:${p}`]])])); SETTINGS = { initCaja, initBanco, initPartidas }; await saveSettings(SETTINGS); renderAll(); alert('Saldos iniciales importados.');
+  } else {
+    const text = await file.text(); const lines = text.trim().split(/\r?\n/); const headers = lines[0].split(','); const vals = lines[1]?.split(',')||[]; const idx = Object.fromEntries(headers.map((h,i)=>[h,i])); const initCaja = parseNum(vals[idx['initCaja']]); const initBanco = parseNum(vals[idx['initBanco']]); const initPartidas = Object.fromEntries(PARTIDAS.map(p=>[p, parseNum(vals[idx[`partida:${p}`]])])); SETTINGS = { initCaja, initBanco, initPartidas }; await saveSettings(SETTINGS); renderAll(); alert('Saldos iniciales importados (CSV).');
+  }
+}
+function exportEntries(){
+  const headers = ["id","fecha","descripcion","cantidad","tipo","partida","movimiento","de","a"];
+  const rows = ENTRIES.map(e => [ e.id||'', e.fecha||'', e.descripcion||'', e.cantidad||0, e.tipo||'', e.partida||'', e.movimiento||'', e.de||'', e.a||'' ]);
+  if (window.XLSX) {
+    const wsData = [headers, ...rows]; const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(wsData); XLSX.utils.book_append_sheet(wb, ws, 'Apuntes'); const xblob = XLSX.write(wb, {bookType:'xlsx', type:'array'}); downloadFile('apuntes.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', new Blob([xblob]));
+  } else {
+    const csv = [toCSVRow(headers), ...rows.map(toCSVRow)].join('\n'); downloadFile('apuntes.csv','text/csv', new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  }
+}
+async function importEntries(file){
+  const name = file.name.toLowerCase();
+  if ((name.endsWith('.xlsx') || name.endsWith('.xls')) && window.XLSX) {
+    const buf = await file.arrayBuffer(); const wb = XLSX.read(buf, {type:'array'}); const ws = wb.Sheets[wb.SheetNames[0]]; const data = XLSX.utils.sheet_to_json(ws, {header:1}); const headers = data[0]||[]; const hmap = Object.fromEntries(headers.map((h,i)=>[h,i])); const tx = db.transaction('entries','readwrite'); const store = tx.objectStore('entries');
+    for (let i=1;i<data.length;i++) { const row = data[i]; if (!row || row.length===0) continue; const e = { fecha: row[hmap['fecha']]||'', descripcion: row[hmap['descripcion']]||'', cantidad: parseNum(row[hmap['cantidad']]), tipo: row[hmap['tipo']]||'', partida: row[hmap['partida']]||'', movimiento: row[hmap['movimiento']]||'', de: row[hmap['de']]||'', a: row[hmap['a']]||'' }; store.add(e); }
+    await new Promise(res => { tx.oncomplete = () => res(true); }); ENTRIES = await getAllEntries(); renderAll(); alert('Apuntes importados desde Excel.');
+  } else {
+    const text = await file.text(); const lines = text.trim().split(/\r?\n/); const headers = lines[0].split(','); const idx = Object.fromEntries(headers.map((h,i)=>[h,i])); const tx = db.transaction('entries','readwrite'); const store = tx.objectStore('entries');
+    for (let i=1;i<lines.length;i++) { const cols = parseCSVLine(lines[i]); if (!cols) continue; const e = { fecha: cols[idx['fecha']]||'', descripcion: cols[idx['descripcion']]||'', cantidad: parseNum(cols[idx['cantidad']]), tipo: cols[idx['tipo']]||'', partida: cols[idx['partida']]||'', movimiento: cols[idx['movimiento']]||'', de: cols[idx['de']]||'', a: cols[idx['a']]||'' }; store.add(e); }
+    await new Promise(res => { tx.oncomplete = () => res(true); }); ENTRIES = await getAllEntries(); renderAll(); alert('Apuntes importados desde CSV.');
+  }
+}
+function parseCSVLine(line){
+  const out = []; let i=0, inQ=false, cur='';
+  while (i<line.length) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"') { if (line[i+1] === '"') { cur+='"'; i+=2; continue; } inQ=false; i++; continue; }
+      cur += ch; i++; continue;
+    } else {
+      if (ch === '"') { inQ=true; i++; continue; }
+      if (ch === ',') { out.push(cur); cur=''; i++; continue; }
+      cur += ch; i++; continue;
+    }
+  }
+  out.push(cur); return out;
+}
+
+// ==========================
+// PDF (impresión de sección)
+// ==========================
+function printSection(sectionId){
+  const section = document.getElementById(sectionId);
+  const printContainer = document.getElementById('print-container');
+  printContainer.innerHTML = '';
+  printContainer.appendChild(section.cloneNode(true));
+  printContainer.classList.remove('hidden');
+  window.print();
+  setTimeout(()=>{ printContainer.innerHTML=''; printContainer.classList.add('hidden'); }, 100);
+}
+
+// ==========================
+// Arranque
+// ==========================
+(async function start(){
+  await openDB();
+  initUI();
+  SETTINGS = await getSettings();
+  ENTRIES = await getAllEntries();
+  renderAll();
+})();
+</script>
+</body>
+</html>
