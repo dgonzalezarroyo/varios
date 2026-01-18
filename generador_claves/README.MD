@@ -1,6 +1,6 @@
-https://dgonzalezarroyo.github.io/varios/generador_claves/Generador de Claves.html
+https://dgonzalezarroyo.github.io/varios/generador_claves/Generador%20de%20Claves.html
 
-https://dgonzalezarroyo.github.io/varios/generador_claves/Generador de Claves v2.html
+https://dgonzalezarroyo.github.io/varios/generador_claves/Generador%20de%20Claves%20v2.html
 
 # 🔐 Generador de Claves (HTML)
 
