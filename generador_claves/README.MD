@@ -1,3 +1,7 @@
+https://dgonzalezarroyo.github.io/varios/generador_claves/Generador de Claves.html
+
+https://dgonzalezarroyo.github.io/varios/generador_claves/Generador de Claves v2.html
+
 # 🔐 Generador de Claves (HTML)
 
 Este repositorio contiene **dos versiones en HTML** de un generador de claves a partir de nombres completos, pensado para uso educativo o administrativo.
