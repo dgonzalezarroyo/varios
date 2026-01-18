@@ -1,3 +1,10 @@
+https://dgonzalezarroyo.github.io/varios/matematicas/logaritmo.html
+
+https://dgonzalezarroyo.github.io/varios/matematicas/seno.html
+
+https://dgonzalezarroyo.github.io/varios/matematicas/planos.html
+
+
 # 🔎 Exploradores Matemáticos Interactivos
 
 Este repositorio contiene **tres archivos HTML** independientes que funcionan como **visualizadores interactivos** de conceptos matemáticos. No requieren instalación: solo abre los HTML en cualquier navegador moderno (Chrome, Firefox, Edge, Safari).
