@@ -9,7 +9,7 @@ Ambas versiones funcionan **directamente en el navegador**, sin instalación ni 
   Versión original del generador.
 
 * **`Generador de Claves v2.html`**
-  Versión mejorada con generación de **dos claves por persona**.
+  Versión mejorada con generación de **dos claves por persona** (o un usuario y una contraseña, según quieras verlo).
 
 ## ✨ Funcionalidades comunes
 
@@ -39,9 +39,9 @@ Ambas versiones permiten:
 
 ### 🔹 Generador de Claves v2.html (v2)
 
-* Genera **dos claves por persona**:
+* Genera **dos claves por persona** (o un usuario y una contraseña, según quieras verlo):
 
-  1. **Clave 1**: basada en nombre o apellido + 4 dígitos
+  1. **Clave 1** (o nombre de usuario): basada en nombre o apellido + 4 dígitos
   2. **Clave 2**: cadena aleatoria de **8 caracteres** (letras y números)
 * El archivo CSV descargado contiene únicamente las claves, ideal para su distribución.
 
