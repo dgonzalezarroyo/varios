@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<!-- saved from url=(0130)https://aulavirtual33.educa.madrid.org/ies.mariecurie.loeches/pluginfile.php/66938/mod_resource/content/2/generador_claves_v2.html -->
+<html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Claves v2</title>
+    <script src="./Generador de Claves v2_files/papaparse.min.js"></script>
+    <script src="./Generador de Claves v2_files/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background-color: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background-color: #f0f2ff;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .file-info {
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results.visible {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background-color: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background-color: #f8f9ff;
+        }
+
+        .clave {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #764ba2;
+            font-size: 16px;
+        }
+
+        .download-btn {
+            background: #10b981;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+
+        .download-btn:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .error {
+            background-color: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Generador de Claves v2</h1>
+        <p class="subtitle">Carga un archivo CSV o ODS con nombres completos para generar dos claves únicas</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <p style="font-size: 48px; margin-bottom: 10px;">📁</p>
+            <p style="color: #666; margin-bottom: 15px;">Arrastra tu archivo aquí o haz clic para seleccionar</p>
+            <button class="upload-btn" onclick="document.getElementById(&#39;fileInput&#39;).click()">
+                Seleccionar Archivo
+            </button>
+            <input type="file" id="fileInput" accept=".csv,.ods">
+            <div class="file-info" id="fileInfo"></div>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="results" id="results">
+            <h2>Claves Generadas</h2>
+            <table id="resultTable">
+                <thead>
+                    <tr>
+                        <th>Nombre Completo</th>
+                        <th>Clave 1 (Basada en nombre)</th>
+                        <th>Clave 2 (8 caracteres aleatorios)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+            <button class="download-btn" onclick="descargarResultados()">
+                📥 Descargar CSV con Claves
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let datosResultado = [];
+
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInfo = document.getElementById('fileInfo');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                procesarArchivo(file);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                procesarArchivo(file);
+            }
+        });
+
+        function mostrarError(mensaje) {
+            error.textContent = mensaje;
+            error.classList.add('visible');
+            results.classList.remove('visible');
+        }
+
+        function ocultarError() {
+            error.classList.remove('visible');
+        }
+
+        function generarClaveAleatoria8() {
+            const caracteres = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let clave = '';
+            for (let i = 0; i < 8; i++) {
+                clave += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+            }
+            return clave;
+        }
+
+        function extraerNombreYApellidos(textoCompleto) {
+            // Dividir el texto en palabras
+            const palabras = textoCompleto.trim().split(/\s+/);
+            
+            // Filtrar palabras de más de 3 caracteres
+            const palabrasFiltradas = palabras.filter(palabra => palabra.length > 3);
+            
+            // Si hay 3 o más palabras filtradas, tomar las 3 primeras
+            if (palabrasFiltradas.length >= 3) {
+                return {
+                    nombre: palabrasFiltradas[0],
+                    apellido1: palabrasFiltradas[1],
+                    apellido2: palabrasFiltradas[2]
+                };
+            }
+            // Si hay menos de 3, usar lo que haya disponible
+            else if (palabrasFiltradas.length === 2) {
+                return {
+                    nombre: palabrasFiltradas[0],
+                    apellido1: palabrasFiltradas[1],
+                    apellido2: ''
+                };
+            }
+            else if (palabrasFiltradas.length === 1) {
+                return {
+                    nombre: palabrasFiltradas[0],
+                    apellido1: '',
+                    apellido2: ''
+                };
+            }
+            else {
+                return {
+                    nombre: '',
+                    apellido1: '',
+                    apellido2: ''
+                };
+            }
+        }
+
+        function generarClave(nombre, apellido1, apellido2) {
+            // Array con las opciones disponibles (nombre, apellido1, apellido2)
+            const opciones = [];
+            
+            if (nombre && nombre.trim() !== '') {
+                opciones.push({ tipo: 'Nombre', valor: nombre.trim() });
+            }
+            if (apellido1 && apellido1.trim() !== '') {
+                opciones.push({ tipo: 'Apellido 1', valor: apellido1.trim() });
+            }
+            if (apellido2 && apellido2.trim() !== '') {
+                opciones.push({ tipo: 'Apellido 2', valor: apellido2.trim() });
+            }
+            
+            // Si no hay opciones válidas, usar lo que venga
+            if (opciones.length === 0) {
+                return { clave: 'ERROR', parteSeleccionada: 'Sin datos' };
+            }
+            
+            // Seleccionar aleatoriamente una de las opciones
+            const seleccionado = opciones[Math.floor(Math.random() * opciones.length)];
+            
+            // Eliminar espacios y acentos, convertir a mayúsculas
+            const textoLimpio = seleccionado.valor
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toUpperCase()
+                .replace(/\s+/g, '');
+            
+            // Generar 4 dígitos aleatorios
+            const digitosAleatorios = Math.floor(1000 + Math.random() * 9000).toString();
+            
+            // Combinar texto + 4 dígitos
+            const clave = textoLimpio + digitosAleatorios;
+            
+            return {
+                clave: clave,
+                parteSeleccionada: seleccionado.tipo
+            };
+        }
+
+        function procesarArchivo(file) {
+            ocultarError();
+            fileInfo.textContent = `Archivo seleccionado: ${file.name}`;
+            
+            const extension = file.name.split('.').pop().toLowerCase();
+            
+            if (extension === 'csv') {
+                procesarCSV(file);
+            } else if (extension === 'ods') {
+                procesarODS(file);
+            } else {
+                mostrarError('Por favor, selecciona un archivo CSV o ODS');
+            }
+        }
+
+        function procesarCSV(file) {
+            Papa.parse(file, {
+                complete: function(results) {
+                    procesarDatos(results.data);
+                },
+                error: function(error) {
+                    mostrarError('Error al leer el archivo CSV: ' + error.message);
+                },
+                skipEmptyLines: true
+            });
+        }
+
+        function procesarODS(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    procesarDatos(jsonData);
+                } catch (err) {
+                    mostrarError('Error al leer el archivo ODS: ' + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function procesarDatos(datos) {
+            if (datos.length === 0) {
+                mostrarError('El archivo está vacío');
+                return;
+            }
+
+            datosResultado = [];
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            datos.forEach((fila, index) => {
+                // Saltar la fila de encabezados si existe
+                if (index === 0 && typeof fila[0] === 'string' && 
+                    (fila[0].toLowerCase().includes('nombre') || fila[0].toLowerCase().includes('name'))) {
+                    return;
+                }
+
+                // Obtener el texto completo de la primera columna
+                const textoCompleto = fila[0]?.toString().trim() || '';
+                
+                if (textoCompleto !== '') {
+                    // Extraer nombre y apellidos del texto completo
+                    const { nombre, apellido1, apellido2 } = extraerNombreYApellidos(textoCompleto);
+                    
+                    if (nombre !== '' || apellido1 !== '' || apellido2 !== '') {
+                        const resultado = generarClave(nombre, apellido1, apellido2);
+                        const clave2 = generarClaveAleatoria8();
+                        
+                        datosResultado.push({ 
+                            nombreCompleto: textoCompleto,
+                            clave1: resultado.clave,
+                            clave2: clave2
+                        });
+
+                        const row = tableBody.insertRow();
+                        row.insertCell(0).textContent = textoCompleto;
+                        row.insertCell(1).innerHTML = `<span class="clave">${resultado.clave}</span>`;
+                        row.insertCell(2).innerHTML = `<span class="clave">${clave2}</span>`;
+                    }
+                }
+            });
+
+            if (datosResultado.length > 0) {
+                results.classList.add('visible');
+            } else {
+                mostrarError('No se encontraron datos válidos en el archivo');
+            }
+        }
+
+        function descargarResultados() {
+            let csv = 'Clave1,Clave2\n';
+            datosResultado.forEach(item => {
+                csv += `${item.clave1},${item.clave2}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'claves_generadas.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+
+</body></html>
