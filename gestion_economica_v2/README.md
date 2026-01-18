@@ -1,3 +1,4 @@
+https://dgonzalezarroyo.github.io/varios/gestion_economica_v2/index.html 
 
 # Gestión económica (local, IndexedDB)
 
