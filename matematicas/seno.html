@@ -1,0 +1,305 @@
+<!DOCTYPE html> <html lang="es"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Explorador Interactivo de la Función Seno</title> <style> * { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #333; min-height: 100vh; padding: 20px; } .container { max-width: 1400px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 30px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px); } h1 { text-align: center; margin-bottom: 30px; background: linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 2.5em; font-weight: bold; } .main-content { display: grid; grid-template-columns: 1fr 350px; gap: 30px; } .graph-section { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); } .controls-section { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); height: fit-content; } #functionDisplay { text-align: center; font-size: 1.8em; font-weight: bold; color: #4a90e2; margin-bottom: 20px; padding: 15px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e1e8ff; } #canvas { border: 2px solid #e1e8ff; border-radius: 10px; display: block; margin: 0 auto; background: #fafbff; } .control-group { margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4a90e2; } .control-group h3 { color: #4a90e2; margin-bottom: 15px; font-size: 1.2em; } .slider-container { margin-bottom: 15px; } .slider-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 500; } .slider-value { background: #4a90e2; color: white; padding: 4px 10px; border-radius: 15px; font-size: 0.9em; min-width: 60px; text-align: center; } input[type="range"] { width: 100%; height: 8px; border-radius: 5px; background: #ddd; outline: none; -webkit-appearance: none; } input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #4a90e2; cursor: pointer; transition: all 0.3s ease; } input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); background: #357abd; } input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #4a90e2; cursor: pointer; border: none; } .properties-section { grid-column: 1 / -1; background: white; border-radius: 15px; padding: 25px; margin-top: 20px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); } .properties-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; } .property-card { background: #f8f9ff; padding: 20px; border-radius: 12px; border-left: 4px solid #4a90e2; } .property-card h4 { color: #4a90e2; margin-bottom: 10px; font-size: 1.1em; } .property-card p { line-height: 1.6; color: #555; } .reset-btn { width: 100%; padding: 12px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: all 0.3s ease; margin-top: 20px; } .reset-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); } @media (max-width: 1200px) { .main-content { grid-template-columns: 1fr; } } @media (max-width: 768px) { .container { padding: 15px; } h1 { font-size: 2em; } #functionDisplay { font-size: 1.4em; } .properties-grid { grid-template-columns: 1fr; } } </style> </head> <body> <div class="container"> <h1>?? Explorador Interactivo de la Función Seno</h1> <div class="main-content"> <div class="graph-section"> <div id="functionDisplay">f(x) = sin(x)</div> <canvas id="canvas" width="800" height="500"></canvas> </div> <div class="controls-section"> <div class="control-group"> <h3>?? Parámetros Principales</h3> <div class="slider-container"> <div class="slider-label"> <span>Amplitud (A)</span> <span class="slider-value" id="amplitudeValue">1</span> </div> <input type="range" id="amplitude" min="0.1" max="5" step="0.1" value="1"> </div> <div class="slider-container"> <div class="slider-label"> <span>Frecuencia (B)</span> <span class="slider-value" id="frequencyValue">1</span> </div> <input type="range" id="frequency" min="0.1" max="3" step="0.1" value="1"> </div> <div class="slider-container"> <div class="slider-label"> <span>Desfase Horizontal (C)</span> <span class="slider-value" id="phaseValue">0</span> </div> <input type="range" id="phase" min="-6.28" max="6.28" step="0.1" value="0"> </div> <div class="slider-container"> <div class="slider-label"> <span>Desfase Vertical (D)</span> <span class="slider-value" id="verticalValue">0</span> </div> <input type="range" id="vertical" min="-3" max="3" step="0.1" value="0"> </div> </div> <div class="control-group"> <h3>??️ Visualización</h3> <div class="slider-container"> <div class="slider-label"> <span>Zoom X</span> <span class="slider-value" id="zoomXValue">1</span> </div> <input type="range" id="zoomX" min="0.5" max="3" step="0.1" value="1"> </div> <div class="slider-container"> <div class="slider-label"> <span>Zoom Y</span> <span class="slider-value" id="zoomYValue">1</span> </div> <input type="range" id="zoomY" min="0.5" max="3" step="0.1" value="1"> </div> </div> <button class="reset-btn" onclick="resetParameters()">?? Resetear Parámetros</button> </div> </div> <div class="properties-section"> <h2 style="text-align: center; margin-bottom: 25px; color: #4a90e2;">?? Propiedades Matemáticas</h2> <div class="properties-grid" id="propertiesGrid"> <!-- Las propiedades se generarán dinámicamente --> </div> </div> </div> <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Parámetros de la función
+        let params = {
+            amplitude: 1,
+            frequency: 1,
+            phase: 0,
+            vertical: 0,
+            zoomX: 1,
+            zoomY: 1
+        };
+        
+        // Referencias a los controles
+        const controls = {
+            amplitude: document.getElementById('amplitude'),
+            frequency: document.getElementById('frequency'),
+            phase: document.getElementById('phase'),
+            vertical: document.getElementById('vertical'),
+            zoomX: document.getElementById('zoomX'),
+            zoomY: document.getElementById('zoomY')
+        };
+        
+        // Referencias a los valores mostrados
+        const values = {
+            amplitude: document.getElementById('amplitudeValue'),
+            frequency: document.getElementById('frequencyValue'),
+            phase: document.getElementById('phaseValue'),
+            vertical: document.getElementById('verticalValue'),
+            zoomX: document.getElementById('zoomXValue'),
+            zoomY: document.getElementById('zoomYValue')
+        };
+        
+        // Event listeners para los controles
+        Object.keys(controls).forEach(key => {
+            controls[key].addEventListener('input', (e) => {
+                params[key] = parseFloat(e.target.value);
+                values[key].textContent = e.target.value;
+                updateDisplay();
+            });
+        });
+        
+        function updateDisplay() {
+            updateFunctionDisplay();
+            drawGraph();
+            updateProperties();
+        }
+        
+        function updateFunctionDisplay() {
+            const display = document.getElementById('functionDisplay');
+            let func = 'f(x) = ';
+            
+            if (params.amplitude !== 1) {
+                func += `${params.amplitude}`;
+            }
+            
+            func += 'sin(';
+            
+            if (params.frequency !== 1) {
+                func += `${params.frequency}x`;
+            } else {
+                func += 'x';
+            }
+            
+            if (params.phase !== 0) {
+                func += params.phase > 0 ? ` + ${params.phase.toFixed(1)}` : ` - ${Math.abs(params.phase).toFixed(1)}`;
+            }
+            
+            func += ')';
+            
+            if (params.vertical !== 0) {
+                func += params.vertical > 0 ? ` + ${params.vertical}` : ` - ${Math.abs(params.vertical)}`;
+            }
+            
+            display.textContent = func;
+        }
+        
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const scaleX = 50 * params.zoomX;
+            const scaleY = 80 * params.zoomY;
+            
+            // Dibujar ejes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            // Eje X
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(canvas.width, centerY);
+            // Eje Y
+            ctx.moveTo(centerX, 0);
+            ctx.lineTo(centerX, canvas.height);
+            ctx.stroke();
+            
+            // Dibujar marcas en los ejes
+            ctx.fillStyle = '#666';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            
+            // Marcas en X (múltiplos de π)
+            for (let i = -4; i <= 4; i++) {
+                if (i === 0) continue;
+                const x = centerX + i * Math.PI * scaleX;
+                if (x >= 0 && x <= canvas.width) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, centerY - 5);
+                    ctx.lineTo(x, centerY + 5);
+                    ctx.stroke();
+                    ctx.fillText(i === 1 ? 'π' : i === -1 ? '-π' : `${i}π`, x, centerY + 20);
+                }
+            }
+            
+            // Marcas en Y
+            for (let i = -5; i <= 5; i++) {
+                if (i === 0) continue;
+                const y = centerY - i * scaleY;
+                if (y >= 0 && y <= canvas.height) {
+                    ctx.beginPath();
+                    ctx.moveTo(centerX - 5, y);
+                    ctx.lineTo(centerX + 5, y);
+                    ctx.stroke();
+                    ctx.textAlign = 'right';
+                    ctx.fillText(i.toString(), centerX - 10, y + 4);
+                }
+            }
+            
+            // Dibujar función
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            let firstPoint = true;
+            for (let px = 0; px <= canvas.width; px += 1) {
+                const x = (px - centerX) / scaleX;
+                const y = params.amplitude * Math.sin(params.frequency * x + params.phase) + params.vertical;
+                const py = centerY - y * scaleY;
+                
+                if (firstPoint) {
+                    ctx.moveTo(px, py);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+            ctx.stroke();
+            
+            // Dibujar puntos clave
+            drawKeyPoints(centerX, centerY, scaleX, scaleY);
+        }
+        
+        function drawKeyPoints(centerX, centerY, scaleX, scaleY) {
+            ctx.fillStyle = '#3498db';
+            
+            // Calcular puntos clave (máximos, mínimos, cruces por cero)
+            const period = 2 * Math.PI / params.frequency;
+            const phaseShift = -params.phase / params.frequency;
+            
+            for (let n = -5; n <= 5; n++) {
+                // Cruces por cero
+                const zeroX = phaseShift + n * period;
+                const zeroPx = centerX + zeroX * scaleX;
+                const zeroPy = centerY - params.vertical * scaleY;
+                
+                if (zeroPx >= 0 && zeroPx <= canvas.width) {
+                    ctx.beginPath();
+                    ctx.arc(zeroPx, zeroPy, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+                
+                // Máximos
+                const maxX = phaseShift + (Math.PI/2 + 2*n*Math.PI) / params.frequency;
+                const maxPx = centerX + maxX * scaleX;
+                const maxPy = centerY - (params.amplitude + params.vertical) * scaleY;
+                
+                if (maxPx >= 0 && maxPx <= canvas.width) {
+                    ctx.fillStyle = '#27ae60';
+                    ctx.beginPath();
+                    ctx.arc(maxPx, maxPy, 5, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+                
+                // Mínimos
+                const minX = phaseShift + (3*Math.PI/2 + 2*n*Math.PI) / params.frequency;
+                const minPx = centerX + minX * scaleX;
+                const minPy = centerY - (-params.amplitude + params.vertical) * scaleY;
+                
+                if (minPx >= 0 && minPx <= canvas.width) {
+                    ctx.fillStyle = '#e67e22';
+                    ctx.beginPath();
+                    ctx.arc(minPx, minPy, 5, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+                
+                ctx.fillStyle = '#3498db';
+            }
+        }
+        
+        function updateProperties() {
+            const period = 2 * Math.PI / Math.abs(params.frequency);
+            const amplitude = Math.abs(params.amplitude);
+            const range = `[${(params.vertical - amplitude).toFixed(2)}, ${(params.vertical + amplitude).toFixed(2)}]`;
+            
+            const properties = [
+                {
+                    title: "📐 Dominio",
+                    content: "ℝ (todos los números reales)"
+                },
+                {
+                    title: "📊 Rango",
+                    content: range
+                },
+                {
+                    title: "🔄 Período",
+                    content: `${period.toFixed(3)} ≈ ${(period/Math.PI).toFixed(2)}π`
+                },
+                {
+                    title: "📏 Amplitud",
+                    content: amplitude.toFixed(2)
+                },
+                {
+                    title: "🔀 Frecuencia",
+                    content: `${Math.abs(params.frequency)} Hz`
+                },
+                {
+                    title: "↔️ Desfase Horizontal",
+                    content: `${params.phase.toFixed(2)} rad ≈ ${(params.phase * 180 / Math.PI).toFixed(1)}°`
+                },
+                {
+                    title: "↕️ Desfase Vertical",
+                    content: `${params.vertical.toFixed(2)} unidades`
+                },
+                {
+                    title: "🔄 Simetría",
+                    content: params.vertical === 0 && params.phase === 0 ? 
+                        "Impar: f(-x) = -f(x)" : 
+                        "Sin simetría especial"
+                },
+                {
+                    title: "📈 Continuidad",
+                    content: "Continua en todo ℝ"
+                },
+                {
+                    title: "📐 Derivabilidad",
+                    content: "Derivable en todo ℝ"
+                },
+                {
+                    title: "🎯 Puntos Máximos",
+                    content: `En x = ${(-params.phase/params.frequency + Math.PI/(2*params.frequency)).toFixed(2)} + ${(2*Math.PI/params.frequency).toFixed(2)}k`
+                },
+                {
+                    title: "🎯 Puntos Mínimos",
+                    content: `En x = ${(-params.phase/params.frequency + 3*Math.PI/(2*params.frequency)).toFixed(2)} + ${(2*Math.PI/params.frequency).toFixed(2)}k`
+                },
+                {
+                    title: "⚖️ Cruces por Cero",
+                    content: `En x = ${(-params.phase/params.frequency).toFixed(2)} + ${(Math.PI/params.frequency).toFixed(2)}k`
+                },
+                {
+                    title: "📊 Asíntotas",
+                    content: "No tiene asíntotas"
+                },
+                {
+                    title: "📈 Monotonía",
+                    content: `Creciente en intervalos de longitud ${(Math.PI/params.frequency).toFixed(2)}`
+                },
+                {
+                    title: "🔄 Periodicidad",
+                    content: `f(x + T) = f(x) donde T = ${period.toFixed(3)}`
+                }
+            ];
+            
+            const grid = document.getElementById('propertiesGrid');
+            grid.innerHTML = properties.map(prop => `
+                <div class="property-card">
+                    <h4>${prop.title}</h4>
+                    <p>${prop.content}</p>
+                </div>
+            `).join('');
+        }
+        
+        function resetParameters() {
+            params = {
+                amplitude: 1,
+                frequency: 1,
+                phase: 0,
+                vertical: 0,
+                zoomX: 1,
+                zoomY: 1
+            };
+            
+            Object.keys(controls).forEach(key => {
+                controls[key].value = params[key];
+                values[key].textContent = params[key];
+            });
+            
+            updateDisplay();
+        }
+        
+        // Inicialización
+        updateDisplay();
+    </script> </body> </html> 
