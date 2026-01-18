@@ -1,7 +1,3 @@
-Aquí tienes un **README.md** listo para usar en la carpeta de GitHub donde estarán ambos archivos. Está pensado para que cualquiera entienda rápidamente la diferencia entre versiones y cómo usarlas.
-
----
-
 # 🔐 Generador de Claves (HTML)
 
 Este repositorio contiene **dos versiones en HTML** de un generador de claves a partir de nombres completos, pensado para uso educativo o administrativo.
@@ -69,11 +65,3 @@ Ambas versiones permiten:
 * No se requiere conexión a Internet una vez cargado el archivo.
 * Compatible con acentos y nombres compuestos.
 * Pensado para uso educativo (alumnado, listas, credenciales temporales).
-
----
-
-Si quieres, puedo:
-
-* Ajustarlo a un **contexto educativo concreto**
-* Añadir una sección de **licencia**
-* Simplificar el README para público no técnico
