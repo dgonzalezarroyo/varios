@@ -64,4 +64,3 @@ Ambas versiones permiten:
 
 * No se requiere conexión a Internet una vez cargado el archivo.
 * Compatible con acentos y nombres compuestos.
-* Pensado para uso educativo (alumnado, listas, credenciales temporales).
