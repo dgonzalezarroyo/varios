@@ -1,0 +1,64 @@
+
+101 Créditos de la Consejería Educación para gastos de funcionam
+2120 Reparación y conservación edificios y otras construcciones
+2130 Reparación y conservación maquinaria,instalaciones,utillaje
+2140 Reparación y conservación de elementos de transporte
+2150 Reparación y conservación de mobiliario y enseres
+2160 Reparación y conservación equip. procesos de la información
+2200 Material oficina, informático, libros, prensa, otras public.
+2210 Suministros: energía eléctrica
+2211 Suministros: agua
+2213 Suministros: combustibles
+2214 Suministros: vestuario
+2215 Suministros: productos alimenticios
+2217 Materias primas para el funcionamiento de los servicios
+2218 Suministros: mobiliario y equipamiento
+2219 Otros suministros
+2220 Comunicaciones: teléfono,télex,fax,serv.postal/telegráfico..
+2230 Transporte
+2240 Primas de seguros
+2250 Impuestos, tasas y contribuciones especiales
+2267 Pago retenciones IRPF a Hacienda
+2268 Gastos diversos: promoción económica, cultural y educativa
+2270 Trabajos realizados por empresas de limpieza y aseo
+2271 Trabajos realizados por empresas de seguridad
+2279 Otros trabajos realizados por empresas y profesionales
+2400 Otros gastos de funcionamiento
+2909 Comisiones bancarias101 Créditos de la Consejería Educación para gastos de funcionam
+
+
+1021 Creditos de la C. Educación por subc. distintos al 2900-
+2269 Gastos distintos al funcionamiento operativo del centro
+
+
+1021 Creditos de la C. Educación por subc. distintos al 2900-
+2205 C.Madrid:ayudas libros texto y material didáctico complement
+
+
+1024 Créditos que provienen de Instituciones de la Unión Europea
+2602 Gastos corrientes financiados por la Unión Europea
+
+
+1038 Cualquier otro ingreso para el que cuente con autorización
+2120 Reparación y conservación edificios y otras construcciones
+2130 Reparación y conservación maquinaria,instalaciones,utillaje
+2140 Reparación y conservación de elementos de transporte
+2150 Reparación y conservación de mobiliario y enseres
+2160 Reparación y conservación equip. procesos de la información
+2219 Otros suministros
+2220 Comunicaciones: teléfono,télex,fax,serv.postal/telegráfico..
+2230 Transporte
+2240 Primas de seguros
+2250 Impuestos, tasas y contribuciones especiales
+2267 Pago retenciones IRPF a Hacienda
+2268 Gastos diversos: promoción económica, cultural y educativa
+2400 Otros gastos de funcionamiento
+2909 Comisiones bancarias
+
+
+1041 Por el cobro de la cuota del Seguro Escolar de los alumnos
+9999 Seguro Escolar: pago a la Tesorería Gral. Seguridad Social
+
+
+1042 Por colaborar con la TGSS en la gestión del cobro Seguro Esc
+2200 Material oficina, informático, libros, prensa, otras public.
