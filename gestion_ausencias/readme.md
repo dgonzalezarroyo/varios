@@ -1,3 +1,5 @@
+https://dgonzalezarroyo.github.io/varios/gestion_ausencias/index.html
+
 # Generador de Partes de Ausencia de Personal
 
 Aplicación web desarrollada en **HTML y JavaScript**, diseñada para ejecutarse **en local**, que permite registrar, gestionar y exportar **partes de ausencia de personal**. La aplicación almacena los datos automáticamente mediante **IndexedDB**, permite la **importación y exportación en CSV/Excel** y genera **partes mensuales en PDF** con el resumen de ausencias.
