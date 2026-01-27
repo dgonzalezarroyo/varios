@@ -8,3 +8,5 @@ https://dgonzalezarroyo.github.io/varios/deteccion_ia.html
 
 https://dgonzalezarroyo.github.io/varios/PreguntasGIFT.html
 
+https://dgonzalezarroyo.github.io/varios/calificaciones.html
+
