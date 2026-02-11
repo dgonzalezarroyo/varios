@@ -10,7 +10,7 @@ A continuación se describe brevemente cada uno de los archivos `.html` incluido
 Calculadora científica desarrollada en HTML y JavaScript que permite realizar operaciones matemáticas básicas y avanzadas.
 
 ### 📚 calificaciones.html
-Página orientada a la gestión o visualización de calificaciones, pensada para uso educativo.
+Página orientada a cómo importar calificaciones en Moodle.
 
 ### 🧠 circuit_problems.html
 Conjunto de problemas o ejercicios relacionados con circuitos eléctricos, posiblemente interactivos.
