@@ -1,4 +1,4 @@
-# 📁 Proyecto Varios
+# 📁 Proyectos Varios
 
 Este repositorio contiene varios pequeños proyectos y ejemplos en HTML, desarrollados con distintos fines educativos y de experimentación.
 
