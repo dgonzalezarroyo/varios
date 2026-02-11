@@ -13,10 +13,10 @@ Calculadora científica desarrollada en HTML y JavaScript que permite realizar o
 Página orientada a cómo importar calificaciones en Moodle.
 
 ### 🧠 circuit_problems.html
-Conjunto de problemas o ejercicios relacionados con circuitos eléctricos, posiblemente interactivos.
+Conjunto de problemas o ejercicios relacionados con circuitos eléctricos.
 
 ### 🤖 deteccion_ia.html
-Ejemplo o demostración relacionada con detección mediante técnicas de inteligencia artificial.
+Contenidos sobre la detección de contenidos generados por inteligencia artificial.
 
 ### ❓ PreguntasGIFT.html
 Archivo con preguntas en formato GIFT, utilizado habitualmente para importar cuestionarios en plataformas educativas como Moodle.
