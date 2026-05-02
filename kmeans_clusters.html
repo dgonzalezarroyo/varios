@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K-Means Clustering</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0b0c10;
+    --surface: #13151c;
+    --surface2: #1c1f2b;
+    --border: #2a2f42;
+    --accent: #00e5ff;
+    --accent2: #ff3d71;
+    --purple: #a78bfa;
+    --text: #e8eaf6;
+    --muted: #6b7280;
+    --radius: 12px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,229,255,0.08) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(42,47,66,0.3) 39px, rgba(42,47,66,0.3) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(42,47,66,0.3) 39px, rgba(42,47,66,0.3) 40px);
+  }
+
+  header { text-align: center; margin-bottom: 40px; }
+
+  header h1 {
+    font-size: 2.8rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+
+  header p {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    width: 100%;
+    max-width: 900px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.4);
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 26px;
+  }
+
+  .tab-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: 10px 22px;
+    color: var(--muted);
+    cursor: pointer;
+    margin-bottom: -1px;
+    transition: color 0.2s, border-color 0.2s;
+    box-shadow: none;
+  }
+
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn:active { transform: none; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Controles ── */
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: end;
+  }
+
+  .field label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .field input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 1.2rem;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .field input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,255,0.12);
+  }
+
+  .field input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+  }
+
+  button {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    border: none;
+    border-radius: 8px;
+    padding: 13px 24px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+
+  button:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent) 0%, #00b8d4 100%);
+    color: #000;
+    box-shadow: 0 0 20px rgba(0,229,255,0.35);
+  }
+  .btn-primary:hover { box-shadow: 0 0 30px rgba(0,229,255,0.55); }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-export {
+    background: linear-gradient(135deg, var(--accent2) 0%, #ff7043 100%);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(255,61,113,0.3);
+    display: none;
+  }
+  .btn-export:hover { box-shadow: 0 0 30px rgba(255,61,113,0.5); }
+
+  .btn-purple {
+    background: linear-gradient(135deg, var(--purple) 0%, #7c3aed 100%);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(167,139,250,0.3);
+  }
+  .btn-purple:hover { box-shadow: 0 0 30px rgba(167,139,250,0.5); }
+
+  /* ── Drop zone ── */
+  .drop-zone {
+    position: relative;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .drop-zone.dragover, .drop-zone:hover {
+    border-color: var(--purple);
+    background: rgba(167,139,250,0.04);
+  }
+
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon { font-size: 2.4rem; display: block; margin-bottom: 12px; }
+
+  .drop-zone p {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.73rem;
+    color: var(--muted);
+    line-height: 2;
+  }
+
+  .drop-zone strong { color: var(--purple); }
+
+  /* ── CSV preview ── */
+  .csv-preview {
+    display: none;
+    margin-top: 18px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .csv-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .csv-preview-header span {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+  }
+
+  .csv-preview-header strong { color: var(--purple); }
+
+  .btn-clear {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .btn-clear:hover { color: var(--accent2); border-color: var(--accent2); }
+  .btn-clear:active { transform: scale(0.96); box-shadow: none; }
+
+  .table-wrap { overflow-x: auto; max-height: 170px; overflow-y: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.67rem;
+  }
+
+  th {
+    background: var(--surface2);
+    color: var(--muted);
+    padding: 6px 14px;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 5px 14px;
+    color: var(--text);
+    border-top: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tr:hover td { background: rgba(167,139,250,0.04); }
+
+  /* ── Mapeo de columnas ── */
+  .col-map {
+    display: none;
+    margin-top: 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+
+  .col-map-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.67rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .col-map-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .col-map-grid label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.63rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .col-map-grid select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    padding: 8px 10px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .col-map-grid select:focus { border-color: var(--purple); }
+
+  .import-hint {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.63rem;
+    color: var(--muted);
+    line-height: 1.9;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 6px;
+    border-left: 2px solid var(--purple);
+  }
+
+  .import-hint em { color: var(--purple); font-style: normal; }
+
+  #importKWrap {
+    display: none;
+    margin-bottom: 16px;
+  }
+
+  #importKWrap input[type="number"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem;
+    padding: 10px 14px;
+    outline: none;
+    width: 130px;
+    transition: border-color 0.2s;
+  }
+
+  #importKWrap input[type="number"]:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px rgba(167,139,250,0.12);
+  }
+
+  /* ── Chart area ── */
+  .chart-area { display: none; }
+
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chart-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .mode-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 4px;
+  }
+
+  .mode-badge.random   { background: rgba(0,229,255,0.12);   color: var(--accent); }
+  .mode-badge.imported { background: rgba(167,139,250,0.15); color: var(--purple); }
+
+  canvas {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #0e1018;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 10px;
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+  .stats-row { display: flex; gap: 14px; margin-top: 20px; flex-wrap: wrap; }
+
+  .stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stat span { color: var(--text); font-size: 0.88rem; }
+
+  .iter-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.66rem;
+    color: var(--muted);
+    margin-top: 14px;
+    text-align: right;
+  }
+
+  .iter-badge em { color: var(--accent); font-style: normal; }
+
+  .error-msg {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.76rem;
+    color: var(--accent2);
+    margin-top: 12px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>K-Means Clustering</h1>
+  <p>Clasificaci&#xF3;n no supervisada &middot; Visualizaci&#xF3;n interactiva</p>
+</header>
+
+<div class="card">
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tabRandom" onclick="switchTab('random')">&#x26A1; Generaci&#xF3;n aleatoria</button>
+    <button class="tab-btn" id="tabImport" onclick="switchTab('import')">&#x2B06; Importar CSV</button>
+  </div>
+
+  <!-- Panel: generaci&#xF3;n aleatoria -->
+  <div class="tab-panel active" id="panelRandom">
+    <div class="controls">
+      <div class="field">
+        <label>N&#xFA;mero de puntos (n)</label>
+        <input type="number" id="inputN" min="2" max="5000" value="150" placeholder="ej. 150">
+      </div>
+      <div class="field">
+        <label>N&#xFA;mero de clusters (k)</label>
+        <input type="number" id="inputK" min="1" max="20" value="4" placeholder="ej. 4">
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="runKMeans()">&#x25B6; Generar y Clasificar</button>
+        <button class="btn-secondary" onclick="reshuffle()">&#x27F3; Regenerar puntos</button>
+        <button class="btn-export" id="btnExportRandom" onclick="exportCSV()">&#x2193; Exportar CSV</button>
+      </div>
+    </div>
+    <div class="error-msg" id="errorRandom"></div>
+  </div>
+
+  <!-- Panel: importar CSV -->
+  <div class="tab-panel" id="panelImport">
+
+    <div class="drop-zone" id="dropZone"
+         ondragover="event.preventDefault(); this.classList.add('dragover')"
+         ondragleave="this.classList.remove('dragover')"
+         ondrop="handleDrop(event)">
+      <input type="file" id="csvFile" accept=".csv,text/csv" onchange="handleFileSelect(event)">
+      <span class="drop-icon">&#x1F4C2;</span>
+      <p>
+        <strong>Arrastra tu CSV aqu&#xED;</strong> o haz clic para seleccionar<br>
+        Separadores aceptados: <strong>coma &nbsp;&middot;&nbsp; punto y coma &nbsp;&middot;&nbsp; tabulador</strong><br>
+        El archivo puede tener o no cabecera
+      </p>
+    </div>
+
+    <!-- Preview tabla -->
+    <div class="csv-preview" id="csvPreview">
+      <div class="csv-preview-header">
+        <span id="csvFileName"></span>
+        <button class="btn-clear" onclick="clearCSV()">&#x2715; Limpiar</button>
+      </div>
+      <div class="table-wrap">
+        <table id="csvTable"></table>
+      </div>
+    </div>
+
+    <!-- Mapeo de columnas -->
+    <div class="col-map" id="colMap">
+      <div class="col-map-title">&#x1F50D; Mapeo de columnas</div>
+      <div class="col-map-grid">
+        <div>
+          <label>Columna X *</label>
+          <select id="colX"></select>
+        </div>
+        <div>
+          <label>Columna Y *</label>
+          <select id="colY"></select>
+        </div>
+        <div>
+          <label>Cluster (opcional)</label>
+          <select id="colCluster" onchange="toggleKInput()"></select>
+        </div>
+      </div>
+      <p class="import-hint">
+        Si tu CSV ya tiene columna de cluster, los colores se asignar&#xE1;n directamente seg&#xFA;n esas etiquetas.<br>
+        Si seleccionas <em>ninguna</em>, se ejecutar&#xE1; K-Means sobre los datos importados con el k que indiques.
+      </p>
+      <div id="importKWrap">
+        <div class="field">
+          <label>N&#xFA;mero de clusters (k)</label>
+          <input type="number" id="inputKImport" min="1" max="20" value="3" placeholder="ej. 3">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-purple" onclick="runImport()">&#x2191; Visualizar datos importados</button>
+        <button class="btn-export" id="btnExportImport" onclick="exportCSV()">&#x2193; Exportar CSV</button>
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorImport"></div>
+  </div>
+</div>
+
+<!-- Gr&#xE1;fica -->
+<div class="card chart-area" id="chartArea">
+  <div class="chart-header">
+    <span class="chart-title">Distribuci&#xF3;n de puntos por cluster</span>
+    <span class="mode-badge" id="modeBadge"></span>
+  </div>
+  <canvas id="canvas"></canvas>
+  <div class="legend" id="legend"></div>
+  <div class="stats-row" id="statsRow"></div>
+  <div class="iter-badge" id="iterBadge"></div>
+</div>
+
+<script>
+  const PALETTE = [
+    '#00e5ff','#ff3d71','#a78bfa','#ffd166','#06d6a0',
+    '#ff6b6b','#4ecdc4','#f7b731','#45aaf2','#fd9644',
+    '#26de81','#fc5c65','#2bcbba','#f368e0','#ff9f43',
+    '#ee5a24','#0652dd','#c4e538','#9980fa','#833471'
+  ];
+
+  let points      = [];
+  let assignments = [];
+  let centroids   = [];
+  let k           = 0;
+  let dataSource  = 'random';
+
+  let csvHeaders  = [];
+  let csvRows     = [];
+
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    document.getElementById('panelRandom').classList.toggle('active', tab === 'random');
+    document.getElementById('panelImport').classList.toggle('active', tab === 'import');
+    document.getElementById('tabRandom').classList.toggle('active', tab === 'random');
+    document.getElementById('tabImport').classList.toggle('active', tab === 'import');
+  }
+
+  // ── Generación aleatoria ──────────────────────────────────────────────────
+  function generatePoints(n) {
+    return Array.from({ length: n }, () => ({ x: Math.random(), y: Math.random() }));
+  }
+
+  function validate() {
+    const n  = parseInt(document.getElementById('inputN').value);
+    const kv = parseInt(document.getElementById('inputK').value);
+    const err = document.getElementById('errorRandom');
+    if (!n || n < 2 || n > 5000)  { showErr(err, 'n debe estar entre 2 y 5000.');      return null; }
+    if (!kv || kv < 1 || kv > 20) { showErr(err, 'k debe estar entre 1 y 20.');        return null; }
+    if (kv > n)                    { showErr(err, 'k no puede ser mayor que n.');        return null; }
+    err.style.display = 'none';
+    return { n, kv };
+  }
+
+  function runKMeans() {
+    const v = validate(); if (!v) return;
+    points = generatePoints(v.n);
+    k = v.kv;
+    const r = kmeans(points, k);
+    assignments = r.assigns; centroids = r.cents;
+    dataSource = 'random';
+    showChart('Generación aleatoria · K-Means++');
+  }
+
+  function reshuffle() {
+    const v = validate(); if (!v) return;
+    points = generatePoints(v.n);
+    k = v.kv;
+    const r = kmeans(points, k);
+    assignments = r.assigns; centroids = r.cents;
+    dataSource = 'random';
+    showChart('Generación aleatoria · K-Means++');
+  }
+
+  // ── K-Means (K-Means++ seed) ──────────────────────────────────────────────
+  function kmeans(pts, K, maxIter = 300) {
+    let cents = [pts[Math.floor(Math.random() * pts.length)]];
+    for (let c = 1; c < K; c++) {
+      const dists = pts.map(p => Math.min(...cents.map(ce => dist2(p, ce))));
+      const total = dists.reduce((a, b) => a + b, 0);
+      let r = Math.random() * total;
+      for (let i = 0; i < pts.length; i++) {
+        r -= dists[i];
+        if (r <= 0) { cents.push(pts[i]); break; }
+      }
+      if (cents.length <= c) cents.push(pts[pts.length - 1]);
+    }
+
+    let assigns = new Array(pts.length).fill(0);
+    let iters = 0;
+
+    for (let iter = 0; iter < maxIter; iter++) {
+      iters++;
+      let changed = false;
+      for (let i = 0; i < pts.length; i++) {
+        let best = 0, bestD = Infinity;
+        for (let c = 0; c < K; c++) {
+          const d = dist2(pts[i], cents[c]);
+          if (d < bestD) { bestD = d; best = c; }
+        }
+        if (assigns[i] !== best) { assigns[i] = best; changed = true; }
+      }
+      if (!changed) break;
+
+      const sums = Array.from({ length: K }, () => ({ x: 0, y: 0, count: 0 }));
+      for (let i = 0; i < pts.length; i++) {
+        sums[assigns[i]].x += pts[i].x;
+        sums[assigns[i]].y += pts[i].y;
+        sums[assigns[i]].count++;
+      }
+      for (let c = 0; c < K; c++) {
+        cents[c] = sums[c].count > 0
+          ? { x: sums[c].x / sums[c].count, y: sums[c].y / sums[c].count }
+          : pts[Math.floor(Math.random() * pts.length)];
+      }
+    }
+    return { assigns, cents, iters };
+  }
+
+  function dist2(a, b) { return (a.x - b.x) ** 2 + (a.y - b.y) ** 2; }
+
+  // ── Importación CSV ───────────────────────────────────────────────────────
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) processCSVFile(file);
+  }
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) processCSVFile(file);
+  }
+
+  function processCSVFile(file) {
+    const err = document.getElementById('errorImport');
+    if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
+      showErr(err, 'El archivo debe ser un CSV (.csv).'); return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      try { parseCSV(e.target.result, file.name); }
+      catch (ex) { showErr(err, 'Error al leer el CSV: ' + ex.message); }
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function detectSeparator(text) {
+    const first = text.split('\n')[0];
+    const counts = { ',': 0, ';': 0, '\t': 0 };
+    for (const ch of first) if (ch in counts) counts[ch]++;
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+  }
+
+  function parseCSV(text, filename) {
+    text = text.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const sep   = detectSeparator(text);
+    const lines = text.split('\n').filter(l => l.trim() !== '');
+    if (lines.length < 2) throw new Error('El CSV necesita al menos una cabecera y una fila de datos.');
+
+    const firstCells = lines[0].split(sep);
+    const hasHeader  = firstCells.some(v => isNaN(parseFloat(v.trim().replace(/^"|"$/g, ''))));
+
+    if (hasHeader) {
+      csvHeaders = firstCells.map(h => h.trim().replace(/^"|"$/g, ''));
+      csvRows    = lines.slice(1).map(l => l.split(sep).map(v => v.trim().replace(/^"|"$/g, '')));
+    } else {
+      csvHeaders = firstCells.map((_, i) => 'col' + (i + 1));
+      csvRows    = lines.map(l => l.split(sep).map(v => v.trim().replace(/^"|"$/g, '')));
+    }
+
+    if (csvRows.length < 2)    throw new Error('Se necesitan al menos 2 filas de datos numéricos.');
+    if (csvHeaders.length < 2) throw new Error('Se necesitan al menos 2 columnas (X e Y).');
+
+    document.getElementById('errorImport').style.display = 'none';
+    renderCSVPreview(filename);
+    renderColumnSelectors();
+  }
+
+  function renderCSVPreview(filename) {
+    document.getElementById('csvFileName').innerHTML =
+      `<strong>${filename}</strong> &nbsp;&middot;&nbsp; ${csvRows.length} filas &nbsp;&middot;&nbsp; ${csvHeaders.length} columnas`;
+
+    const maxRows = Math.min(csvRows.length, 8);
+    let html = '<thead><tr>' + csvHeaders.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+    for (let i = 0; i < maxRows; i++) {
+      html += '<tr>' + csvRows[i].map(v => `<td>${v}</td>`).join('') + '</tr>';
+    }
+    if (csvRows.length > maxRows) {
+      html += `<tr><td colspan="${csvHeaders.length}" style="color:var(--muted);text-align:center;padding:8px">&#x2026; ${csvRows.length - maxRows} filas m&#xE1;s</td></tr>`;
+    }
+    html += '</tbody>';
+    document.getElementById('csvTable').innerHTML = html;
+    document.getElementById('csvPreview').style.display = 'block';
+  }
+
+  function renderColumnSelectors() {
+    const opts     = csvHeaders.map((h, i) => `<option value="${i}">${h}</option>`).join('');
+    const noneOpt  = '<option value="">&#x2014; ninguna &#x2014;</option>';
+
+    // Auto-detección de columnas por nombre
+    const guess = (keywords) => {
+      const idx = csvHeaders.findIndex(h => keywords.some(kw => h.toLowerCase().includes(kw)));
+      return idx >= 0 ? idx : -1;
+    };
+
+    let xIdx = guess(['x', 'lon', 'lng']);
+    let yIdx = guess(['y', 'lat']);
+    if (xIdx < 0) xIdx = 0;
+    if (yIdx < 0 || yIdx === xIdx) yIdx = xIdx + 1 < csvHeaders.length ? xIdx + 1 : xIdx;
+    const cIdx = guess(['cluster', 'grupo', 'group', 'label', 'clase', 'class', 'categoria', 'category']);
+
+    document.getElementById('colX').innerHTML = opts;
+    document.getElementById('colX').value = xIdx;
+
+    document.getElementById('colY').innerHTML = opts;
+    document.getElementById('colY').value = yIdx;
+
+    document.getElementById('colCluster').innerHTML = noneOpt + opts;
+    document.getElementById('colCluster').value = cIdx >= 0 ? cIdx : '';
+
+    toggleKInput();
+    document.getElementById('colMap').style.display = 'block';
+    document.getElementById('btnExportImport').style.display = 'none';
+  }
+
+  function toggleKInput() {
+    const hasCluster = document.getElementById('colCluster').value !== '';
+    document.getElementById('importKWrap').style.display = hasCluster ? 'none' : 'block';
+  }
+
+  function runImport() {
+    const err = document.getElementById('errorImport');
+    if (!csvRows.length) { showErr(err, 'Primero importa un archivo CSV.'); return; }
+
+    const cxIdx = parseInt(document.getElementById('colX').value);
+    const cyIdx = parseInt(document.getElementById('colY').value);
+    const clVal = document.getElementById('colCluster').value;
+    const clIdx = clVal !== '' ? parseInt(clVal) : -1;
+
+    if (cxIdx === cyIdx) { showErr(err, 'Las columnas X e Y deben ser distintas.'); return; }
+
+    // Extraer puntos válidos
+    const rawPts = [];
+    for (let i = 0; i < csvRows.length; i++) {
+      const row = csvRows[i];
+      const xv  = parseFloat(row[cxIdx]);
+      const yv  = parseFloat(row[cyIdx]);
+      if (isNaN(xv) || isNaN(yv)) continue;
+      const cl  = clIdx >= 0 ? row[clIdx] : null;
+      rawPts.push({ x: xv, y: yv, origX: xv, origY: yv, rawCluster: cl });
+    }
+
+    if (rawPts.length < 2) { showErr(err, 'No hay suficientes filas numéricas válidas (mínimo 2).'); return; }
+
+    // Normalizar coordenadas a [0, 1] para visualizar
+    const xs = rawPts.map(p => p.x), ys = rawPts.map(p => p.y);
+    const xMin = Math.min(...xs), xMax = Math.max(...xs);
+    const yMin = Math.min(...ys), yMax = Math.max(...ys);
+    const xR = xMax - xMin || 1, yR = yMax - yMin || 1;
+
+    points = rawPts.map(p => ({
+      x: (p.x - xMin) / xR,
+      y: (p.y - yMin) / yR,
+      origX: p.origX,
+      origY: p.origY
+    }));
+
+    let badge = '';
+
+    if (clIdx >= 0) {
+      // Usar clusters del propio CSV
+      const labels   = rawPts.map(p => p.rawCluster);
+      const unique   = [...new Set(labels)].sort();
+      const labelMap = {};
+      unique.forEach((v, i) => labelMap[v] = i);
+
+      assignments = labels.map(v => labelMap[v] ?? 0);
+      k = unique.length;
+
+      // Calcular centroides como media de cada cluster
+      const sums = Array.from({ length: k }, () => ({ x: 0, y: 0, n: 0 }));
+      for (let i = 0; i < points.length; i++) {
+        sums[assignments[i]].x += points[i].x;
+        sums[assignments[i]].y += points[i].y;
+        sums[assignments[i]].n++;
+      }
+      centroids = sums.map(s => s.n > 0 ? { x: s.x / s.n, y: s.y / s.n } : { x: 0.5, y: 0.5 });
+      badge = `CSV importado &middot; ${k} clusters leídos del archivo`;
+    } else {
+      // Aplicar K-Means
+      const kv = parseInt(document.getElementById('inputKImport').value);
+      if (!kv || kv < 1 || kv > 20)         { showErr(err, 'k debe estar entre 1 y 20.'); return; }
+      if (kv > points.length)                { showErr(err, 'k no puede ser mayor que el número de puntos válidos.'); return; }
+      k = kv;
+      const r = kmeans(points, k);
+      assignments = r.assigns; centroids = r.cents;
+      badge = `CSV importado &middot; K-Means++ &middot; ${r.iters} iteraci&#xF3;n${r.iters === 1 ? '' : 'es'}`;
+    }
+
+    err.style.display = 'none';
+    dataSource = 'imported';
+    document.getElementById('btnExportImport').style.display = 'inline-block';
+    showChart(badge);
+  }
+
+  function clearCSV() {
+    csvHeaders = []; csvRows = [];
+    document.getElementById('csvPreview').style.display = 'none';
+    document.getElementById('colMap').style.display = 'none';
+    document.getElementById('csvFile').value = '';
+    document.getElementById('btnExportImport').style.display = 'none';
+    document.getElementById('errorImport').style.display = 'none';
+  }
+
+  // ── Renderizado ───────────────────────────────────────────────────────────
+  function showChart(badgeText) {
+    document.getElementById('chartArea').style.display = 'block';
+    const mb = document.getElementById('modeBadge');
+    mb.innerHTML  = dataSource === 'imported' ? 'CSV importado' : 'Generación aleatoria';
+    mb.className  = 'mode-badge ' + (dataSource === 'imported' ? 'imported' : 'random');
+    if (dataSource === 'random') document.getElementById('btnExportRandom').style.display = 'inline-block';
+    document.getElementById('iterBadge').innerHTML = badgeText;
+    setTimeout(() => { drawChart(); buildLegend(); }, 10);
+  }
+
+  function drawChart() {
+    const canvas = document.getElementById('canvas');
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.offsetWidth;
+    const H = Math.max(420, W * 0.6);
+    canvas.width  = W * dpr; canvas.height = H * dpr;
+    canvas.style.height = H + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const PAD = 48, PW = W - PAD * 2, PH = H - PAD * 2;
+
+    ctx.fillStyle = '#0e1018'; ctx.fillRect(0, 0, W, H);
+
+    // Grid
+    ctx.strokeStyle = 'rgba(42,47,66,0.7)'; ctx.lineWidth = 1;
+    for (let i = 0; i <= 10; i++) {
+      const x = PAD + (i / 10) * PW, y = PAD + (i / 10) * PH;
+      ctx.beginPath(); ctx.moveTo(x, PAD); ctx.lineTo(x, PAD + PH); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(PAD + PW, y); ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(107,114,128,0.5)'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(PAD, PAD, PW, PH);
+
+    ctx.fillStyle = '#6b7280'; ctx.font = '10px Space Mono, monospace'; ctx.textAlign = 'center';
+    for (let i = 0; i <= 10; i += 2) {
+      const v = (i / 10).toFixed(1);
+      ctx.fillText(v, PAD + (i / 10) * PW, PAD + PH + 16);
+      ctx.fillText(v, PAD - 18, PAD + PH - (i / 10) * PH + 3);
+    }
+
+    // Líneas centroide→punto (sutiles)
+    ctx.globalAlpha = 0.06;
+    for (let i = 0; i < points.length; i++) {
+      const c = assignments[i];
+      ctx.strokeStyle = PALETTE[c % PALETTE.length]; ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(PAD + centroids[c].x * PW, PAD + (1 - centroids[c].y) * PH);
+      ctx.lineTo(PAD + points[i].x * PW,    PAD + (1 - points[i].y)    * PH);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // Puntos
+    const R = points.length > 1000 ? 3 : points.length > 400 ? 4 : 5;
+    for (let i = 0; i < points.length; i++) {
+      const c = assignments[i], color = PALETTE[c % PALETTE.length];
+      const px = PAD + points[i].x * PW, py = PAD + (1 - points[i].y) * PH;
+      ctx.beginPath(); ctx.arc(px, py, R, 0, Math.PI * 2);
+      ctx.fillStyle = color + '99'; ctx.fill();
+      ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.stroke();
+    }
+
+    // Centroides
+    for (let c = 0; c < k; c++) {
+      const color = PALETTE[c % PALETTE.length];
+      const cx = PAD + centroids[c].x * PW, cy = PAD + (1 - centroids[c].y) * PH;
+      ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+      ctx.fillStyle = color + '22'; ctx.fill();
+      ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(cx - 10, cy); ctx.lineTo(cx + 10, cy);
+      ctx.moveTo(cx, cy - 10); ctx.lineTo(cx, cy + 10);
+      ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+      ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Space Mono, monospace'; ctx.textAlign = 'center';
+      ctx.fillText('C' + (c + 1), cx, cy + 3);
+    }
+  }
+
+  function buildLegend() {
+    const counts = Array(k).fill(0);
+    assignments.forEach(a => counts[a]++);
+
+    document.getElementById('legend').innerHTML = Array.from({ length: k }, (_, c) => {
+      const color = PALETTE[c % PALETTE.length];
+      return `<div class="legend-item">
+        <span class="dot" style="background:${color}"></span>
+        Cluster ${c + 1} &mdash; <strong style="color:${color}">${counts[c]} pts</strong>
+      </div>`;
+    }).join('');
+
+    const avg = (counts.reduce((a, b) => a + b, 0) / k).toFixed(1);
+    document.getElementById('statsRow').innerHTML = `
+      <div class="stat">TOTAL <span>${points.length}</span></div>
+      <div class="stat">CLUSTERS <span>${k}</span></div>
+      <div class="stat">MEDIA/CLUSTER <span>${avg}</span></div>
+      <div class="stat">M&#xC1;X <span>${Math.max(...counts)}</span></div>
+      <div class="stat">M&#xCD;N <span>${Math.min(...counts)}</span></div>`;
+  }
+
+  // ── Exportar CSV ──────────────────────────────────────────────────────────
+  function exportCSV() {
+    if (!points.length) return;
+    const hasOrig = points[0].origX !== undefined;
+    let csv = 'punto,x,y,cluster\n';
+    for (let i = 0; i < points.length; i++) {
+      const x = hasOrig ? points[i].origX : points[i].x.toFixed(6);
+      const y = hasOrig ? points[i].origY : points[i].y.toFixed(6);
+      csv += `${i + 1},${x},${y},${assignments[i] + 1}\n`;
+    }
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `kmeans_n${points.length}_k${k}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Utilidades ────────────────────────────────────────────────────────────
+  function showErr(el, msg) { el.textContent = '\u26A0 ' + msg; el.style.display = 'block'; }
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { if (points.length) drawChart(); }, 200);
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('panelRandom').classList.contains('active'))
+      runKMeans();
+  });
+</script>
+</body>
+</html>
