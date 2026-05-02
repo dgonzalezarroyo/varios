@@ -21,9 +21,20 @@ Contenidos sobre la detección de contenidos generados por inteligencia artifici
 ### ❓ PreguntasGIFT.html
 Archivo con preguntas en formato GIFT, utilizado habitualmente para importar cuestionarios en plataformas educativas como Moodle.
 
+#### 📈 kmeans_clusters.html
+Visualización interactiva del algoritmo **K-Means** para aprendizaje no supervisado.  
+Permite:
+- Generar puntos aleatorios y clasificarlos en *k* clusters usando **K-Means++**.
+- Importar datos desde archivos **CSV**, seleccionando columnas X, Y
+- Visualizar gráficamente los puntos, centroides y estadísticas de cada cluster.
+- Exportar los resultados a un archivo CSV.
+
+
 ## 🚀 Cómo visualizar los archivos
 
 Los archivos `.html` pueden abrirse directamente en un navegador web:
+
+https://dgonzalezarroyo.github.io/varios/kmeans_clusters.html
 
 https://dgonzalezarroyo.github.io/varios/calculadora_cientifica.html
 
