@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simulación orbital de un satélite (unidades terrestres, v6)</title>
+  <style>
+    :root {
+      --bg: #070c1a;
+      --card: #111a2e;
+      --card-2: #0b1324;
+      --line: #24324d;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #f59e0b;
+      --sat: #fb7185;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(1200px 600px at 20% -10%, #13234a 0%, transparent 60%),
+        radial-gradient(900px 500px at 110% 110%, #1b1440 0%, transparent 60%),
+        var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      padding: 24px 20px 32px;
+    }
+    header { max-width: 1180px; margin: 0 auto 18px; }
+    h1 { margin: 0; font-size: clamp(1.25rem, 2.2vw, 1.7rem); font-weight: 700; letter-spacing: -.01em; }
+    header p { margin: 4px 0 0; color: var(--muted); font-size: .95rem; }
+
+    .layout {
+      max-width: 1180px; margin: 0 auto;
+      display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start;
+    }
+    @media (max-width: 920px) { .layout { grid-template-columns: 1fr; } }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.03), transparent 40%), var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 40px rgba(0,0,0,.45);
+    }
+
+    /* Simulación */
+    .sim { padding: 14px; }
+    .canvas-wrap { position: relative; width: max(280px, min(100%, calc(100vh - 190px))); aspect-ratio: 1 / 1; margin: 0 auto; }
+    canvas { display: block; width: 100%; height: 100%; border-radius: 10px; }
+    .legend {
+      position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 4px;
+      background: rgba(7,12,26,.7); border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 10px; font-size: .78rem; color: var(--muted); backdrop-filter: blur(4px);
+    }
+    .legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; margin-right: 7px; vertical-align: middle; border-radius: 2px; background: var(--c); }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-top: 12px; }
+    .group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    button, .seg label, .toggle {
+      font: inherit; font-size: .88rem; color: var(--text);
+      background: var(--card-2); border: 1px solid var(--line); border-radius: 9px;
+      padding: 7px 12px; cursor: pointer; transition: background .15s, border-color .15s;
+    }
+    button:hover, .seg label:hover, .toggle:hover { border-color: #3b4f75; background: #13203a; }
+    button.primary { background: var(--accent); color: #04111d; border-color: var(--accent); font-weight: 600; min-width: 104px; }
+    button.primary:hover { background: #7dd3fc; }
+    :focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+    .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+    .seg input { position: absolute; opacity: 0; pointer-events: none; }
+    .seg label { border: 0; border-radius: 0; padding: 7px 11px; }
+    .seg label + input + label, .seg input + label ~ label { border-left: 1px solid var(--line); }
+    .seg input:checked + label { background: #1d3a5c; color: #fff; }
+    .seg input:focus-visible + label { outline: 2px solid var(--accent-2); outline-offset: -2px; }
+    .toggle { display: inline-flex; align-items: center; gap: 7px; user-select: none; }
+    .toggle input { accent-color: var(--accent); margin: 0; }
+    .muted { color: var(--muted); font-size: .85rem; }
+
+    /* Panel */
+    .panel { padding: 18px; display: flex; flex-direction: column; gap: 18px; }
+    .panel h2 { margin: 0; font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .control { display: flex; flex-direction: column; gap: 8px; }
+    .control-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .control-head label { font-size: .92rem; }
+    .control-head label small { color: var(--muted); }
+    .chip {
+      font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent);
+      background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.3);
+      padding: 2px 8px; border-radius: 999px; font-size: .88rem; white-space: nowrap;
+    }
+    .range-scale { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); }
+
+    input[type=range] {
+      --p: 50%;
+      -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; cursor: pointer; margin: 0;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 6px; border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent) 0 var(--p), #22304a var(--p) 100%);
+    }
+    input[type=range]::-moz-range-track { height: 6px; border-radius: 999px; background: #22304a; }
+    input[type=range]::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--accent); }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 50%;
+      background: #fff; border: 3px solid var(--accent); box-shadow: 0 0 0 4px rgba(56,189,248,.18);
+    }
+    input[type=range]::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 3px solid var(--accent);
+      box-shadow: 0 0 0 4px rgba(56,189,248,.18);
+    }
+
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .tile { background: var(--card-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+    .tile.wide { grid-column: 1 / -1; }
+    .tile .k { font-size: .75rem; color: var(--muted); }
+    .tile .v { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tile .v small { font-size: .78rem; font-weight: 500; color: var(--muted); }
+    .tile .sub { font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 2px; }
+    .hl { color: var(--accent-2); }
+    .bar { height: 8px; background: #22304a; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+    .bar i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--ok), var(--accent-2), var(--sat)); }
+
+    .warn {
+      display: none; gap: 10px; align-items: flex-start;
+      background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.4); color: #fde68a;
+      border-radius: 10px; padding: 10px 12px; font-size: .86rem; line-height: 1.4;
+    }
+    .warn.on { display: flex; }
+    .warn b { color: var(--warn); }
+    footer { max-width: 1180px; margin: 14px auto 0; color: var(--muted); font-size: .8rem; }
+    kbd { font-family: ui-monospace, Menlo, monospace; font-size: .75rem; background: var(--card-2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 5px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Simulación orbital de un satélite</h1>
+    <p>Órbita kepleriana alrededor de un planeta, en unidades terrestres (masa en M<sub>T</sub>, distancias en R<sub>T</sub>) · v6</p>
+  </header>
+
+  <main class="layout">
+    <section class="card sim" aria-label="Simulación">
+      <div class="canvas-wrap" id="wrap">
+        <canvas id="simCanvas" role="img" aria-label="Planeta en el centro con la órbita elíptica del satélite"></canvas>
+        <div class="legend" aria-hidden="true">
+          <span style="--c:#38bdf8">Órbita</span>
+          <span style="--c:#fb7185">Satélite y estela</span>
+          <span style="--c:#f59e0b">Vector velocidad</span>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="group">
+          <button class="primary" id="btnPlay" type="button" aria-pressed="false">⏸ Pausa</button>
+          <button id="btnReset" type="button">↺ Reiniciar</button>
+        </div>
+        <div class="group">
+          <span class="muted" id="speedLbl">Velocidad</span>
+          <div class="seg" role="radiogroup" aria-labelledby="speedLbl">
+            <input type="radio" name="speed" id="s05" value="0.5"><label for="s05">0,5×</label>
+            <input type="radio" name="speed" id="s1" value="1" checked><label for="s1">1×</label>
+            <input type="radio" name="speed" id="s2" value="2"><label for="s2">2×</label>
+            <input type="radio" name="speed" id="s4" value="4"><label for="s4">4×</label>
+          </div>
+        </div>
+        <div class="group">
+          <label class="toggle"><input type="checkbox" id="chkVec" checked> Vector v</label>
+          <label class="toggle"><input type="checkbox" id="chkTrail" checked> Estela</label>
+        </div>
+      </div>
+    </section>
+
+    <aside class="card panel" aria-label="Parámetros y datos">
+      <h2>Parámetros</h2>
+
+      <div class="control">
+        <div class="control-head">
+          <label for="slider_m">Masa del planeta <small>(M)</small></label>
+          <output class="chip" id="m_val" for="slider_m">1,0 M<sub>T</sub></output>
+        </div>
+        <input type="range" id="slider_m" min="0.1" max="10.0" value="1.0" step="0.1">
+        <div class="range-scale"><span>0,1</span><span>10</span></div>
+      </div>
+
+      <div class="control">
+        <div class="control-head">
+          <label for="slider_a">Semieje mayor <small>(a)</small></label>
+          <output class="chip" id="a_val" for="slider_a">2,0 R<sub>T</sub></output>
+        </div>
+        <input type="range" id="slider_a" min="1.1" max="10.0" value="2.0" step="0.1">
+        <div class="range-scale"><span>1,1</span><span>10</span></div>
+      </div>
+
+      <div class="control">
+        <div class="control-head">
+          <label for="slider_e">Excentricidad <small>(e)</small></label>
+          <output class="chip" id="e_val" for="slider_e">0,20</output>
+        </div>
+        <input type="range" id="slider_e" min="0" max="0.75" value="0.2" step="0.01">
+        <div class="range-scale"><span>0 (circular)</span><span>0,75</span></div>
+      </div>
+
+      <div class="warn" id="warn" role="status">
+        <span aria-hidden="true">⚠</span>
+        <span id="warnTxt"></span>
+      </div>
+
+      <h2>Datos en tiempo real</h2>
+      <div class="tiles">
+        <div class="tile">
+          <div class="k">Distancia (r)</div>
+          <div class="v"><span id="d_r">0</span> <small>R<sub>T</sub></small></div>
+          <div class="sub"><span id="d_r_km">0</span> km</div>
+        </div>
+        <div class="tile">
+          <div class="k">Periodo (T)</div>
+          <div class="v hl" id="d_t">0</div>
+          <div class="sub">θ = <span id="d_theta">0</span>°</div>
+        </div>
+        <div class="tile">
+          <div class="k">Velocidad orbital (v)</div>
+          <div class="v hl"><span id="d_v">0</span> <small>km/s</small></div>
+        </div>
+        <div class="tile">
+          <div class="k">Velocidad de escape</div>
+          <div class="v"><span id="d_vesc">0</span> <small>km/s</small></div>
+        </div>
+        <div class="tile wide">
+          <div class="k">v / v<sub>esc</sub> · <span id="d_ratio">0</span> %</div>
+          <div class="bar" aria-hidden="true"><i id="ratioBar"></i></div>
+        </div>
+        <div class="tile wide">
+          <div class="k">Periapsis · apoapsis</div>
+          <div class="sub" style="font-size:.9rem;color:var(--text)">
+            <span id="d_peri">0</span> R<sub>T</sub> · <span id="d_apo">0</span> R<sub>T</sub>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer>Atajos: <kbd>Espacio</kbd> pausa · <kbd>R</kbd> reiniciar · <kbd>1</kbd>–<kbd>4</kbd> velocidad.</footer>
+
+  <script>
+    // Constantes astrofísicas reales
+    const G = 6.67430e-11;            // m^3 kg^-1 s^-2
+    const EARTH_MASS = 5.9722e24;     // kg
+    const EARTH_RADIUS = 6371000;     // m
+    const ANIM_SPEED_FACTOR = 2200;   // acelera la animación (igual que v5)
+    const DT = 0.016;
+    const TRAIL_LEN = 50;
+
+    const $ = id => document.getElementById(id);
+    const canvas = $('simCanvas'), ctx = canvas.getContext('2d');
+    const wrap = $('wrap');
+    const sliderM = $('slider_m'), sliderA = $('slider_a'), sliderE = $('slider_e');
+
+    const nf = {};
+    const fmt = (n, d) => (nf[d] ||= new Intl.NumberFormat('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d })).format(n);
+
+    let size = 520, dpr = 1, stars = [];
+    let trueAnomaly = 0, trail = [], paused = false, speed = 1, scale = null;
+    let showVec = true, showTrail = true;
+
+    /* ---------- Tamaño del lienzo (nítido en pantallas HiDPI) ---------- */
+    function resize() {
+      const r = wrap.getBoundingClientRect();
+      size = Math.max(260, Math.min(r.width, r.height || r.width));
+      dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(size * dpr);
+      canvas.height = Math.round(size * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      stars = Array.from({ length: Math.round(size * size / 1800) }, () => ({
+        x: Math.random() * size, y: Math.random() * size,
+        r: Math.random() * 1.1 + .2, a: Math.random() * .6 + .2, p: Math.random() * 6.28
+      }));
+    }
+    new ResizeObserver(resize).observe(wrap);
+    resize();
+
+    /* ---------- Controles ---------- */
+    function resetTrail() { trail = []; }
+    function syncSlider(s) {
+      const p = (s.value - s.min) / (s.max - s.min) * 100;
+      s.style.setProperty('--p', p + '%');
+    }
+    function updateLabels() {
+      $('m_val').innerHTML = fmt(+sliderM.value, 1) + ' M<sub>T</sub>';
+      $('a_val').innerHTML = fmt(+sliderA.value, 1) + ' R<sub>T</sub>';
+      $('e_val').textContent = fmt(+sliderE.value, 2);
+      [sliderM, sliderA, sliderE].forEach(syncSlider);
+    }
+    [sliderM, sliderA, sliderE].forEach(s => s.addEventListener('input', () => { updateLabels(); resetTrail(); }));
+    updateLabels();
+
+    const btnPlay = $('btnPlay');
+    function setPaused(p) {
+      paused = p;
+      btnPlay.textContent = paused ? '▶ Seguir' : '⏸ Pausa';
+      btnPlay.setAttribute('aria-pressed', String(paused));
+    }
+    btnPlay.addEventListener('click', () => setPaused(!paused));
+    $('btnReset').addEventListener('click', () => { trueAnomaly = 0; resetTrail(); });
+    document.querySelectorAll('input[name=speed]').forEach(r => r.addEventListener('change', () => { speed = +r.value; }));
+    $('chkVec').addEventListener('change', e => showVec = e.target.checked);
+    $('chkTrail').addEventListener('change', e => { showTrail = e.target.checked; resetTrail(); });
+
+    addEventListener('keydown', e => {
+      if (e.target.matches('input[type=range]') && e.key.startsWith('Arrow')) return;
+      if (e.code === 'Space' && !e.target.matches('button, input')) { e.preventDefault(); setPaused(!paused); }
+      if (e.key === 'r' || e.key === 'R') { trueAnomaly = 0; resetTrail(); }
+      const ids = { '1': 's05', '2': 's1', '3': 's2', '4': 's4' };
+      if (ids[e.key]) { const r = $(ids[e.key]); r.checked = true; r.dispatchEvent(new Event('change')); }
+    });
+
+    /* ---------- Dibujo ---------- */
+    function niceStep(minRt) {
+      for (const s of [0.5, 1, 2, 5, 10, 20]) if (s >= minRt) return s;
+      return 50;
+    }
+
+    function drawBackground(t) {
+      const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size * .75);
+      g.addColorStop(0, '#0d1730'); g.addColorStop(1, '#040814');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+      for (const s of stars) {
+        ctx.globalAlpha = s.a * (.65 + .35 * Math.sin(t * .0015 + s.p));
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.2832); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawRings(cx, cy, k) {
+      const step = niceStep(36 / k);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(148,163,184,.12)'; ctx.lineWidth = 1;
+      ctx.fillStyle = 'rgba(148,163,184,.45)'; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+      for (let d = step, n = 0; d * k < size * .72 && n < 30; d += step, n++) {
+        ctx.beginPath(); ctx.arc(cx, cy, d * k, 0, 6.2832); ctx.stroke();
+        if (cy + d * k + 14 < size) ctx.fillText(fmt(d, d < 1 ? 1 : 0) + ' R_T', cx, cy + d * k + 13);
+      }
+      ctx.restore();
+      return step;
+    }
+
+    function drawPlanet(cx, cy, R) {
+      const atm = ctx.createRadialGradient(cx, cy, R * .9, cx, cy, R * 1.6);
+      atm.addColorStop(0, 'rgba(96,165,250,.45)'); atm.addColorStop(1, 'rgba(96,165,250,0)');
+      ctx.fillStyle = atm; ctx.beginPath(); ctx.arc(cx, cy, R * 1.6, 0, 6.2832); ctx.fill();
+      const body = ctx.createRadialGradient(cx - R * .4, cy - R * .45, R * .1, cx, cy, R);
+      body.addColorStop(0, '#93c5fd'); body.addColorStop(.45, '#3b82f6'); body.addColorStop(1, '#1e3a8a');
+      ctx.fillStyle = body; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 6.2832); ctx.fill();
+      // Lado nocturno
+      const night = ctx.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+      night.addColorStop(.55, 'rgba(2,6,23,0)'); night.addColorStop(1, 'rgba(2,6,23,.55)');
+      ctx.fillStyle = night; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 6.2832); ctx.fill();
+    }
+
+    function label(text, x, y, color, align = 'center') {
+      ctx.save();
+      ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = align; ctx.textBaseline = 'middle';
+      const w = ctx.measureText(text).width + 12, h = 20;
+      let bx = align === 'center' ? x - w / 2 : align === 'left' ? x : x - w;
+      bx = Math.max(6, Math.min(size - w - 6, bx));
+      const by = Math.max(6, Math.min(size - h - 6, y - h / 2));
+      ctx.fillStyle = 'rgba(7,12,26,.82)'; ctx.strokeStyle = color; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(bx, by, w, h, 6); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = color; ctx.textAlign = 'left'; ctx.fillText(text, bx + 6, by + h / 2 + .5);
+      ctx.restore();
+    }
+
+    function arrow(x, y, dx, dy, len, color) {
+      const ex = x + dx * len, ey = y + dy * len, hd = 9, a = Math.atan2(dy, dx);
+      ctx.save();
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex - dx * hd * .6, ey - dy * hd * .6); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ex, ey);
+      ctx.lineTo(ex - hd * Math.cos(a - .45), ey - hd * Math.sin(a - .45));
+      ctx.lineTo(ex - hd * Math.cos(a + .45), ey - hd * Math.sin(a + .45));
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawSatellite(x, y, ang) {
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, 18);
+      glow.addColorStop(0, 'rgba(251,113,133,.55)'); glow.addColorStop(1, 'rgba(251,113,133,0)');
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x, y, 18, 0, 6.2832); ctx.fill();
+      ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+      ctx.fillStyle = '#60a5fa'; ctx.strokeStyle = '#bfdbfe'; ctx.lineWidth = 1;
+      ctx.fillRect(-3, -13, 6, 8); ctx.strokeRect(-3, -13, 6, 8);   // panel solar
+      ctx.fillRect(-3, 5, 6, 8); ctx.strokeRect(-3, 5, 6, 8);       // panel solar
+      ctx.fillStyle = '#fb7185'; ctx.beginPath(); ctx.roundRect(-5, -5, 10, 10, 2); ctx.fill();
+      ctx.fillStyle = '#ffe4e6'; ctx.fillRect(-1.5, -1.5, 3, 3);
+      ctx.restore();
+    }
+
+    function drawScaleBar(step, k) {
+      const len = step * k, x = 16, y = size - 18;
+      ctx.save();
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x, y); ctx.lineTo(x + len, y); ctx.lineTo(x + len, y - 5); ctx.stroke();
+      ctx.fillStyle = '#cbd5e1'; ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'bottom';
+      ctx.fillText(fmt(step, step < 1 ? 1 : 0) + ' R_T ≈ ' + fmt(Math.round(step * EARTH_RADIUS / 1000), 0) + ' km', x, y - 7);
+      ctx.restore();
+    }
+
+    /* ---------- Bucle principal ---------- */
+    function draw(t) {
+      const M_earth = parseFloat(sliderM.value);
+      const a_earth = parseFloat(sliderA.value);
+      const e = parseFloat(sliderE.value);
+
+      // Física (igual que v5)
+      const M_kg = M_earth * EARTH_MASS;
+      const a_m = a_earth * EARTH_RADIUS;
+      const p = a_earth * (1 - e * e);
+      const r_earth = p / (1 + e * Math.cos(trueAnomaly));
+      const r_m = r_earth * EARTH_RADIUS;
+      const v_orb_ms = Math.sqrt(G * M_kg * (2.0 / r_m - 1.0 / a_m));
+      const v_esc_ms = Math.sqrt(2.0 * G * M_kg / r_m);
+      const T_sec = 2 * Math.PI * Math.sqrt(Math.pow(a_m, 3) / (G * M_kg));
+      const h = Math.sqrt(G * M_kg * a_m * (1 - e * e));
+      const omega = h / (r_m * r_m);
+
+      if (!paused) {
+        trueAnomaly += omega * ANIM_SPEED_FACTOR * DT * speed;
+        while (trueAnomaly > 2 * Math.PI) trueAnomaly -= 2 * Math.PI;
+      }
+      const satX = r_earth * Math.cos(trueAnomaly);
+      const satY = r_earth * Math.sin(trueAnomaly);
+      if (!paused && showTrail) { trail.push({ x: satX, y: satY }); if (trail.length > TRAIL_LEN) trail.shift(); }
+
+      // Escala automática: la órbita ocupa siempre el lienzo (zoom suave al mover los deslizadores)
+      const peri = a_earth * (1 - e), apo = a_earth * (1 + e);
+      const target = (size * .42) / apo;
+      scale = scale == null ? target : scale + (target - scale) * .12;
+      const k = scale, cx = size / 2, cy = size / 2;
+      const toX = x => cx + x * k, toY = y => cy - y * k;
+
+      drawBackground(t || 0);
+      const step = drawRings(cx, cy, k);
+
+      // Órbita
+      ctx.beginPath();
+      for (let i = 0; i <= 360; i++) {
+        const th = i / 360 * 2 * Math.PI, rad = p / (1 + e * Math.cos(th));
+        const ox = toX(rad * Math.cos(th)), oy = toY(rad * Math.sin(th));
+        i ? ctx.lineTo(ox, oy) : ctx.moveTo(ox, oy);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(56,189,248,.05)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(56,189,248,.75)'; ctx.lineWidth = 1.6; ctx.stroke();
+
+      // Eje mayor, periapsis y apoapsis
+      if (e > 0.005) {
+        ctx.save();
+        ctx.setLineDash([4, 6]); ctx.strokeStyle = 'rgba(148,163,184,.35)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(toX(-apo), cy); ctx.lineTo(toX(peri), cy); ctx.stroke();
+        ctx.restore();
+        for (const [x, c] of [[peri, '#34d399'], [-apo, '#a78bfa']]) {
+          ctx.fillStyle = c; ctx.beginPath(); ctx.arc(toX(x), cy, 4, 0, 6.2832); ctx.fill();
+        }
+        label('Periapsis ' + fmt(peri, 2) + ' R_T', toX(peri) + 10, cy - 18, '#34d399', 'left');
+        label('Apoapsis ' + fmt(apo, 2) + ' R_T', toX(-apo) - 10, cy - 18, '#a78bfa', 'right');
+      }
+
+      // Planeta (tamaño visual como en v5)
+      const planetPx = Math.max(8, k * Math.pow(M_earth, 0.2));
+      drawPlanet(cx, cy, planetPx);
+
+      // Línea foco-satélite
+      const px = toX(satX), py = toY(satY);
+      ctx.save(); ctx.setLineDash([2, 5]); ctx.strokeStyle = 'rgba(251,113,133,.35)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke(); ctx.restore();
+
+      // Estela con desvanecimiento
+      if (showTrail) {
+        ctx.lineCap = 'round';
+        for (let i = 1; i < trail.length; i++) {
+          const f = i / trail.length;
+          ctx.strokeStyle = `rgba(251,113,133,${(f * .8).toFixed(3)})`;
+          ctx.lineWidth = 1 + f * 2.5;
+          ctx.beginPath(); ctx.moveTo(toX(trail[i - 1].x), toY(trail[i - 1].y)); ctx.lineTo(toX(trail[i].x), toY(trail[i].y)); ctx.stroke();
+        }
+      }
+
+      // Dirección de la velocidad (derivada de la posición respecto a θ)
+      const den = 1 + e * Math.cos(trueAnomaly);
+      const dr = p * e * Math.sin(trueAnomaly) / (den * den);
+      let vx = dr * Math.cos(trueAnomaly) - r_earth * Math.sin(trueAnomaly);
+      let vy = dr * Math.sin(trueAnomaly) + r_earth * Math.cos(trueAnomaly);
+      const vn = Math.hypot(vx, vy) || 1; vx /= vn; vy /= vn;
+      const ratio = v_orb_ms / v_esc_ms;
+      if (showVec) arrow(px, py, vx, -vy, 22 + 70 * ratio, '#f59e0b');
+      drawSatellite(px, py, Math.atan2(-vy, vx));
+
+      drawScaleBar(step, k);
+
+      // Panel
+      $('d_r').textContent = fmt(r_earth, 2);
+      $('d_r_km').textContent = fmt(Math.round(r_m / 1000), 0);
+      $('d_v').textContent = fmt(v_orb_ms / 1000, 2);
+      $('d_vesc').textContent = fmt(v_esc_ms / 1000, 2);
+      $('d_ratio').textContent = fmt(ratio * 100, 1);
+      $('ratioBar').style.width = (ratio * 100).toFixed(1) + '%';
+      $('d_t').textContent = T_sec < 7200 ? fmt(T_sec / 60, 1) + ' min' : fmt(T_sec / 3600, 2) + ' h';
+      $('d_theta').textContent = fmt(trueAnomaly * 180 / Math.PI, 0);
+      $('d_peri').textContent = fmt(peri, 2);
+      $('d_apo').textContent = fmt(apo, 2);
+
+      const warn = $('warn');
+      if (peri < 1) {
+        $('warnTxt').innerHTML = `<b>Periapsis por debajo de 1 R<sub>T</sub></b> (${fmt(peri, 2)} R<sub>T</sub>): con un planeta del tamaño de la Tierra, el satélite chocaría con la superficie.`;
+        warn.classList.add('on');
+      } else warn.classList.remove('on');
+
+      requestAnimationFrame(draw);
+    }
+
+    requestAnimationFrame(draw);
+  </script>
+</body>
+</html>
