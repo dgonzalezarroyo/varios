@@ -28,7 +28,7 @@ Permite:
 - Importar datos desde archivos **CSV**, seleccionando columnas X, Y
 - Visualizar gráficamente los puntos, centroides y estadísticas de cada cluster.
 - Exportar los resultados a un archivo CSV.
-- 
+  
 
 ## 🧬 Célula 3D interactiva 
 
