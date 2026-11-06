@@ -28,12 +28,14 @@ Permite:
 - Importar datos desde archivos **CSV**, seleccionando columnas X, Y
 - Visualizar gráficamente los puntos, centroides y estadísticas de cada cluster.
 - Exportar los resultados a un archivo CSV.
+- 
 
 🧬 **[Célula 3D interactiva]:** modelo tridimensional de una célula animal para explorar sus estructuras y componentes.
 
  ⚡ **[Centrales de energía interactivas]:** visualización 3D de diferentes centrales de energía y sus características.
  
  🪐 **[Simulación orbital]:** simulación de órbitas de satélites que permite modificar parámetros físicos y observar sus efectos.
+ 
 
 
 ## 🚀 Cómo visualizar los archivos
