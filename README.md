@@ -46,3 +46,11 @@ https://dgonzalezarroyo.github.io/varios/PreguntasGIFT.html
 
 https://dgonzalezarroyo.github.io/varios/calificaciones.html
 
+https://dgonzalezarroyo.github.io/varios/Celula_3D_interactiva.html
+
+https://dgonzalezarroyo.github.io/varios/Energia_centrales_interactivas.html
+
+https://dgonzalezarroyo.github.io/varios/Simulacion_orbital_v6.html
+
+****
+
