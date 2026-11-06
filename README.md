@@ -30,13 +30,18 @@ Permite:
 - Exportar los resultados a un archivo CSV.
 - 
 
-🧬 **[Célula 3D interactiva]:** modelo tridimensional de una célula animal para explorar sus estructuras y componentes.
+## 🧬 Célula 3D interactiva: 
 
- ⚡ **[Centrales de energía interactivas]:** visualización 3D de diferentes centrales de energía y sus características.
- 
- 🪐 **[Simulación orbital]:** simulación de órbitas de satélites que permite modificar parámetros físicos y observar sus efectos.
- 
+Modelo tridimensional de una célula animal para explorar sus estructuras y componentes.
 
+## ⚡ Centrales de energía interactivas
+
+Visualización 3D de diferentes centrales de energía y sus características.
+ 
+## 🪐 Simulación orbital]
+
+Simulación de órbitas de satélites que permite modificar parámetros físicos y observar sus efectos.
+ 
 
 ## 🚀 Cómo visualizar los archivos
 
