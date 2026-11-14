@@ -68,10 +68,4 @@ No se prevé instalación ni compilación. Descarga o clona el repositorio y abr
 - La conservación de espacios, saltos de línea y otros detalles depende de la implementación. Comprueba el TXT descargado si el formato exacto es importante.
 - Esta herramienta realiza reemplazos de texto; no garantiza anonimización irreversible ni elimina otros datos identificativos presentes en el documento.
 - Los formatos indicados son CSV para la tabla y TXT para el texto de entrada y salida.
-
-## Estructura esperada
-
-```text
-.
-└── index.html   # Aplicación web autónoma
 ```
