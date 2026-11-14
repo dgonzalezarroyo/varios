@@ -79,4 +79,4 @@ Sin conexión, las fuentes usan la alternativa del sistema y la importación/exp
 
 ## Licencia
 
-Añade aquí la licencia que prefieras (por ejemplo, MIT).
+BY-NC-SA
