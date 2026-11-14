@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anonimizador de textos</title>
+<style>
+:root{
+  --bg:#e9edf2; --panel:#ffffff; --ink:#1c2633; --mute:#566272; --line:#ccd4de;
+  --accent:#27478a; --accent-d:#1c3468; --name-bg:#d9e3fb; --code-bg:#fbe5b8;
+  --ok:#1d6b46; --warn:#7d5200; --warn-bg:#fff4d9; --err:#9b2323; --err-bg:#fde8e8;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;padding:24px 16px 48px}
+main{max-width:980px;margin:0 auto}
+h1{font:700 2rem/1.15 Charter,"Iowan Old Style","Palatino Linotype",Georgia,serif;margin:0 0 6px;letter-spacing:-.01em}
+h2{font:600 1.05rem/1.3 Charter,"Iowan Old Style",Georgia,serif;margin:0 0 10px}
+.lead{color:var(--mute);margin:0 0 18px;max-width:68ch}
+.privacy{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:#fff;border-radius:10px;padding:14px 16px;margin-bottom:20px}
+.privacy strong{display:block}
+.privacy span{color:#c9d3df;font-size:.93rem}
+.bar{flex:none;width:6px;align-self:stretch;border-radius:3px;background:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:720px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.panel p.hint{color:var(--mute);font-size:.92rem;margin:0 0 10px}
+input[type=file]{width:100%;font:inherit;font-size:.95rem}
+input[type=file]::file-selector-button{font:inherit;font-weight:600;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:6px;padding:7px 12px;margin-right:10px;cursor:pointer}
+input[type=file]::file-selector-button:hover{background:#eef2fb}
+.info{margin-top:10px;font-size:.93rem;min-height:1.4em;color:var(--mute);overflow-wrap:anywhere}
+.info.ok{color:var(--ok)} .info.err{color:var(--err)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+button{font:inherit;font-weight:600;border-radius:8px;padding:10px 18px;border:1px solid var(--accent);cursor:pointer}
+button.primary{background:var(--accent);color:#fff}
+button.primary:hover:not(:disabled){background:var(--accent-d)}
+button.secondary{background:#fff;color:var(--accent)}
+button.secondary:hover:not(:disabled){background:#eef2fb}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid #f0a500;outline-offset:2px}
+.msg{border-radius:8px;padding:10px 14px;margin:0 0 12px;font-size:.95rem}
+.msg.err{background:var(--err-bg);color:var(--err);border:1px solid #efb9b9}
+.msg.warn{background:var(--warn-bg);color:var(--warn);border:1px solid #ecd596}
+.msg.ok{background:#e4f4ec;color:var(--ok);border:1px solid #b3dcc6}
+.msg ul{margin:6px 0 0;padding-left:20px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.9rem;color:var(--mute);margin:0 0 10px}
+mark{padding:1px 3px;border-radius:3px;color:inherit}
+mark.n2c{background:var(--name-bg);box-shadow:inset 0 -2px 0 var(--accent)}
+mark.c2n{background:var(--code-bg);box-shadow:inset 0 -2px 0 #c98a00}
+#preview{white-space:pre-wrap;overflow-wrap:anywhere;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:14px;min-height:140px;max-height:420px;overflow:auto;font:.95rem/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+#preview:empty::before{content:"El resultado aparecerá aquí cuando pulses «Sustituir».";color:var(--mute);font-family:system-ui,sans-serif}
+.result-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+.stats{color:var(--mute);font-size:.92rem}
+</style>
+</head>
+<body>
+<main>
+  <h1>Anonimizador de textos</h1>
+  <p class="lead">Sustituye nombres por códigos y códigos por nombres en un texto, usando una tabla CSV de correspondencias. Sirve para anonimizar y para volver al texto original con el mismo CSV.</p>
+
+  <div class="privacy" role="note">
+    <div class="bar" aria-hidden="true"></div>
+    <div>
+      <strong>Tus datos no salen de este equipo</strong>
+      <span>Todo se procesa en tu navegador. Los archivos no se envían a ningún servidor, no se usan servicios externos y no se guardan: al cerrar o recargar la página desaparecen.</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>1. Tabla de correspondencias (.csv)</h2>
+      <p class="hint">Columnas nombre y código, con encabezados. Separador coma o punto y coma.</p>
+      <input type="file" id="csvFile" accept=".csv,text/csv,text/plain" aria-label="Seleccionar archivo CSV">
+      <div class="info" id="csvInfo">Ningún archivo cargado.</div>
+    </section>
+    <section class="panel">
+      <h2>2. Texto a transformar (.txt)</h2>
+      <p class="hint">Puede contener nombres, códigos o ambos. Lo demás no se modifica.</p>
+      <input type="file" id="txtFile" accept=".txt,text/plain" aria-label="Seleccionar archivo de texto">
+      <div class="info" id="txtInfo">Ningún archivo cargado.</div>
+    </section>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="runBtn" disabled>Sustituir</button>
+    <button class="secondary" id="downloadBtn" disabled>Descargar resultado (.txt)</button>
+    <button class="secondary" id="resetBtn">Limpiar y reiniciar</button>
+  </div>
+
+  <div id="messages" role="status" aria-live="polite"></div>
+
+  <section class="panel">
+    <div class="result-head">
+      <h2 style="margin:0">Vista previa del resultado</h2>
+      <span class="stats" id="stats"></span>
+    </div>
+    <div class="legend">
+      <span><mark class="n2c">código</mark> nombre sustituido por su código</span>
+      <span><mark class="c2n">Nombre</mark> código sustituido por su nombre</span>
+    </div>
+    <div id="preview" tabindex="0" aria-label="Vista previa del resultado"></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { lookup: null, regex: null, text: null, txtName: "", result: null };
+
+  function fmtSize(n) { return n < 1024 ? n + " B" : (n / 1024).toFixed(1) + " KB"; }
+  function norm(s) { return s.normalize("NFC").replace(/\s+/g, " ").trim(); }
+  function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\\/-]/g, "\\$&"); }
+
+  function decode(buf) {
+    try { return { text: new TextDecoder("utf-8", { fatal: true }).decode(buf), fallback: false }; }
+    catch (e) { return { text: new TextDecoder("windows-1252").decode(buf), fallback: true }; }
+  }
+
+  function parseCSV(text) {
+    var first = text.split(/\r?\n/, 1)[0] || "";
+    var sc = (first.match(/;/g) || []).length, cc = (first.match(/,/g) || []).length;
+    var d = sc > cc ? ";" : ",";
+    var rows = [], row = [], cell = "", q = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+        else cell += c;
+      } else if (c === '"' && cell === "") q = true;
+      else if (c === d) { row.push(cell); cell = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(cell); rows.push(row); row = []; cell = "";
+      } else cell += c;
+    }
+    if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter(function (r) { return r.some(function (x) { return x.trim() !== ""; }); });
+  }
+
+  function buildTable(rows) {
+    var warnings = [];
+    if (rows.length < 2) throw new Error("El CSV debe tener una fila de encabezados y al menos una fila de datos.");
+    var head = rows[0].map(function (h) { return norm(h).toLowerCase(); });
+    var ni = head.findIndex(function (h) { return /^(nombre|nombres|name|alumno)$/.test(h); });
+    var ci = head.findIndex(function (h) { return /^(c[oó]digo|codigo|code|id|identificador)$/.test(h); });
+    if (ni < 0 || ci < 0 || ni === ci) { ni = 0; ci = 1; }
+    if (rows[0].length < 2) throw new Error("El CSV necesita al menos dos columnas: nombre y código.");
+    var n2c = new Map(), c2n = new Map(), skipped = 0;
+    rows.slice(1).forEach(function (r, idx) {
+      var line = idx + 2, name = norm(r[ni] || ""), code = norm(r[ci] || "");
+      if (!name || !code) { skipped++; return; }
+      if (n2c.has(name)) {
+        if (n2c.get(name) !== code) warnings.push("Línea " + line + ": el nombre «" + name + "» ya tiene el código «" + n2c.get(name) + "». Se ignora «" + code + "».");
+        return;
+      }
+      if (c2n.has(code)) {
+        warnings.push("Línea " + line + ": el código «" + code + "» ya pertenece a «" + c2n.get(code) + "». Se ignora «" + name + "».");
+        return;
+      }
+      n2c.set(name, code); c2n.set(code, name);
+    });
+    if (skipped) warnings.push(skipped + " fila(s) con nombre o código vacío se han ignorado.");
+    var lookup = new Map();
+    n2c.forEach(function (code, name) { lookup.set(name, { to: code, kind: "n2c" }); });
+    c2n.forEach(function (name, code) {
+      if (lookup.has(code)) warnings.push("Ambigüedad: «" + code + "» es a la vez un nombre y un código. Se tratará como nombre.");
+      else lookup.set(code, { to: name, kind: "c2n" });
+    });
+    if (!lookup.size) throw new Error("No se ha encontrado ninguna correspondencia válida en el CSV.");
+    var keys = Array.from(lookup.keys()).sort(function (a, b) { return b.length - a.length; });
+    var alt = keys.map(function (k) { return escRe(k).replace(/ /g, "\\s+"); }).join("|");
+    var regex = new RegExp("(?<![\\p{L}\\p{N}_])(?:" + alt + ")(?![\\p{L}\\p{N}_])", "gu");
+    return { lookup: lookup, regex: regex, warnings: warnings, count: n2c.size };
+  }
+
+  function transform(text) {
+    var segs = [], last = 0, n2c = 0, c2n = 0, m;
+    state.regex.lastIndex = 0;
+    while ((m = state.regex.exec(text)) !== null) {
+      var e = state.lookup.get(norm(m[0]));
+      if (m.index > last) segs.push({ t: text.slice(last, m.index) });
+      if (e) { segs.push({ t: e.to, k: e.kind }); if (e.kind === "n2c") n2c++; else c2n++; }
+      else segs.push({ t: m[0] });
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) segs.push({ t: text.slice(last) });
+    return { segs: segs, n2c: n2c, c2n: c2n, text: segs.map(function (s) { return s.t; }).join("") };
+  }
+
+  function setInfo(id, msg, cls) { var el = $(id); el.textContent = msg; el.className = "info" + (cls ? " " + cls : ""); }
+  function showMessages(items) {
+    var box = $("messages"); box.textContent = "";
+    items.forEach(function (it) {
+      var d = document.createElement("div"); d.className = "msg " + it.cls;
+      if (it.list && it.list.length) {
+        var p = document.createElement("div"); p.textContent = it.text; d.appendChild(p);
+        var ul = document.createElement("ul");
+        it.list.forEach(function (w) { var li = document.createElement("li"); li.textContent = w; ul.appendChild(li); });
+        d.appendChild(ul);
+      } else d.textContent = it.text;
+      box.appendChild(d);
+    });
+  }
+  function refresh() { $("runBtn").disabled = !(state.lookup && state.text !== null); }
+  function clearResult() {
+    state.result = null; $("preview").textContent = ""; $("stats").textContent = ""; $("downloadBtn").disabled = true;
+  }
+
+  function readFile(file) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () { resolve(decode(fr.result)); };
+      fr.onerror = function () { reject(new Error("No se ha podido leer el archivo.")); };
+      fr.readAsArrayBuffer(file);
+    });
+  }
+
+  $("csvFile").addEventListener("change", function (ev) {
+    var f = ev.target.files[0]; state.lookup = null; state.regex = null; clearResult(); showMessages([]); refresh();
+    if (!f) { setInfo("csvInfo", "Ningún archivo cargado."); return; }
+    readFile(f).then(function (r) {
+      var t = buildTable(parseCSV(r.text.replace(/^\uFEFF/, "")));
+      state.lookup = t.lookup; state.regex = t.regex;
+      setInfo("csvInfo", "✓ " + f.name + " (" + fmtSize(f.size) + "): " + t.count + " correspondencias cargadas.", "ok");
+      var msgs = [];
+      if (r.fallback) msgs.push({ cls: "warn", text: "El CSV no está en UTF-8; se ha leído como Windows-1252. Revisa que las tildes y las eñes sean correctas." });
+      if (t.warnings.length) msgs.push({ cls: "warn", text: "Se han detectado posibles ambigüedades en la tabla:", list: t.warnings });
+      showMessages(msgs); refresh();
+    }).catch(function (e) {
+      setInfo("csvInfo", "✗ " + f.name + ": no se ha podido usar.", "err");
+      showMessages([{ cls: "err", text: e.message }]); refresh();
+    });
+  });
+
+  $("txtFile").addEventListener("change", function (ev) {
+    var f = ev.target.files[0]; state.text = null; clearResult(); refresh();
+    if (!f) { setInfo("txtInfo", "Ningún archivo cargado."); return; }
+    readFile(f).then(function (r) {
+      state.text = r.text; state.txtName = f.name;
+      var lines = r.text.length ? r.text.split(/\r\n|\r|\n/).length : 0;
+      setInfo("txtInfo", "✓ " + f.name + " (" + fmtSize(f.size) + "): " + r.text.length + " caracteres, " + lines + " líneas.", "ok");
+      if (r.fallback) showMessages([{ cls: "warn", text: "El TXT no está en UTF-8; se ha leído como Windows-1252. Revisa las tildes y las eñes." }]);
+      refresh();
+    }).catch(function (e) {
+      setInfo("txtInfo", "✗ " + f.name + ": no se ha podido leer.", "err");
+      showMessages([{ cls: "err", text: e.message }]); refresh();
+    });
+  });
+
+  $("runBtn").addEventListener("click", function () {
+    if (!state.lookup || state.text === null) return;
+    var r = transform(state.text);
+    state.result = r.text;
+    var pv = $("preview"); pv.textContent = "";
+    var frag = document.createDocumentFragment();
+    r.segs.forEach(function (s) {
+      if (s.k) { var mk = document.createElement("mark"); mk.className = s.k; mk.textContent = s.t; frag.appendChild(mk); }
+      else frag.appendChild(document.createTextNode(s.t));
+    });
+    pv.appendChild(frag);
+    var total = r.n2c + r.c2n;
+    $("stats").textContent = total + " sustituciones: " + r.n2c + " nombre→código, " + r.c2n + " código→nombre";
+    $("downloadBtn").disabled = false;
+    if (!total) showMessages([{ cls: "warn", text: "No se ha encontrado ningún nombre ni código del CSV en el texto. El resultado es idéntico al original." }]);
+    else showMessages([{ cls: "ok", text: "Sustitución completada. Revisa la vista previa antes de descargar." }]);
+  });
+
+  $("downloadBtn").addEventListener("click", function () {
+    if (state.result === null) return;
+    var blob = new Blob([state.result], { type: "text/plain;charset=utf-8" });
+    var url = URL.createObjectURL(blob), a = document.createElement("a");
+    var base = (state.txtName || "texto.txt").replace(/\.txt$/i, "");
+    a.href = url; a.download = base + "_procesado.txt";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  });
+
+  $("resetBtn").addEventListener("click", function () {
+    $("csvFile").value = ""; $("txtFile").value = "";
+    state = { lookup: null, regex: null, text: null, txtName: "", result: null };
+    setInfo("csvInfo", "Ningún archivo cargado."); setInfo("txtInfo", "Ningún archivo cargado.");
+    showMessages([]); clearResult(); refresh();
+  });
+})();
+</script>
+<noscript>Esta aplicación necesita JavaScript activado en el navegador.</noscript>
+</body>
+</html>
