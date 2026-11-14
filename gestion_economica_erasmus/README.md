@@ -33,7 +33,7 @@ Para añadir, quitar o renombrar finalidades, edita la constante `FINALIDADES` a
 
 ## Uso
 
-1. Descarga `gestion_economica_erasmus.html`.
+1. Descarga `index.html`.
 2. Ábrelo con cualquier navegador moderno (Chrome, Firefox, Edge…).
 3. En **Cantidades presupuestadas**, introduce el presupuesto de cada finalidad.
 4. Registra los pagos en **Nuevo apunte**.
