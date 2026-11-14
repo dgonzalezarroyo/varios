@@ -4,8 +4,6 @@ https://dgonzalezarroyo.github.io/varios/anonimizador/index.html
 
 Aplicación web local para sustituir nombres de personas por códigos y códigos por sus nombres, usando una tabla de correspondencias en CSV. El resultado previsto es un único archivo `index.html` autónomo: se abre en el navegador y permite trabajar con los archivos sin instalar software ni configurar un servidor.
 
-> Este README describe el comportamiento especificado para la aplicación. No se ha inspeccionado aquí una implementación de `index.html`; comprueba que las funciones y los formatos indicados estén implementados antes de presentarlos como características disponibles.
-
 ## Características previstas
 
 - Carga una tabla de correspondencias en formato CSV y un texto de entrada en formato TXT.
