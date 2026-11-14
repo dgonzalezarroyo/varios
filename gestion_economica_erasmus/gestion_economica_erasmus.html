@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión Económica — Libro de cuentas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#F7F5EF;
+    --paper:#FFFFFF;
+    --ink:#1E2A38;
+    --ink-soft:#5B6B7C;
+    --line:#E1DACB;
+    --line-strong:#C9BFA8;
+    --teal:#356158;
+    --teal-soft:#E3EEE9;
+    --amber:#B4772C;
+    --amber-soft:#F5E9D6;
+    --red:#A6413A;
+    --red-soft:#F4E1DF;
+    --radius:10px;
+    --serif:'Fraunces', Georgia, 'Times New Roman', serif;
+    --sans:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.45;
+    padding-bottom:60px;
+  }
+  a{color:inherit;}
+
+  /* ---- Cabecera tipo lomo de libro de cuentas ---- */
+  header.app-header{
+    background:var(--ink);
+    color:#F2EFE6;
+    padding:28px 32px 24px;
+    border-bottom:6px solid var(--teal);
+  }
+  header.app-header .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:#9FB3AE;
+    margin-bottom:6px;
+  }
+  header.app-header h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:30px;
+    margin:0 0 4px;
+  }
+  header.app-header p{
+    margin:0;
+    color:#C7CFD6;
+    font-size:14px;
+    max-width:640px;
+  }
+
+  main{
+    max-width:1080px;
+    margin:0 auto;
+    padding:0 24px;
+  }
+
+  section{
+    margin-top:36px;
+  }
+  section > h2{
+    font-family:var(--serif);
+    font-size:20px;
+    font-weight:600;
+    margin:0 0 4px;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  section > h2 .section-note{
+    font-family:var(--sans);
+    font-size:12.5px;
+    font-weight:400;
+    color:var(--ink-soft);
+  }
+  .card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+  }
+
+  /* ---- Resumen: tarjetas presupuestarias ---- */
+  #grid-resumen{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+    gap:14px;
+    margin-top:14px;
+  }
+  .budget-card{
+    padding:16px 18px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    border-top:3px solid var(--line-strong);
+  }
+  .budget-card.status-ok{border-top-color:var(--teal);}
+  .budget-card.status-warn{border-top-color:var(--amber);}
+  .budget-card.status-over{border-top-color:var(--red);}
+  .budget-card .bc-title{
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .budget-card .bc-disponible{
+    font-family:var(--mono);
+    font-size:22px;
+    font-weight:500;
+  }
+  .budget-card .bc-disponible .lbl{
+    display:block;
+    font-family:var(--sans);
+    font-size:11px;
+    font-weight:500;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ink-soft);
+    margin-bottom:2px;
+  }
+  .status-ok .bc-disponible{color:var(--teal);}
+  .status-warn .bc-disponible{color:var(--amber);}
+  .status-over .bc-disponible{color:var(--red);}
+  .bc-bar{
+    height:6px;
+    border-radius:4px;
+    background:var(--line);
+    overflow:hidden;
+  }
+  .bc-bar-fill{
+    height:100%;
+    background:var(--teal);
+  }
+  .status-warn .bc-bar-fill{background:var(--amber);}
+  .status-over .bc-bar-fill{background:var(--red);}
+  .bc-meta{
+    display:flex;
+    justify-content:space-between;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    font-family:var(--mono);
+  }
+
+  /* ---- Formularios ---- */
+  .form-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    padding:18px;
+    align-items:flex-end;
+  }
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .field label{
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .field input, .field select{
+    font-family:var(--sans);
+    font-size:14px;
+    padding:9px 10px;
+    border:1px solid var(--line-strong);
+    border-radius:6px;
+    background:#FDFCF9;
+    color:var(--ink);
+    min-width:150px;
+  }
+  .field input:focus, .field select:focus{
+    outline:2px solid var(--teal);
+    outline-offset:1px;
+  }
+  .field.grow{flex:1; min-width:220px;}
+  button{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:13.5px;
+    border-radius:6px;
+    border:1px solid transparent;
+    padding:10px 16px;
+    cursor:pointer;
+    transition:background .12s ease, border-color .12s ease;
+  }
+  button.primary{
+    background:var(--teal);
+    color:#fff;
+  }
+  button.primary:hover{background:#2A4C45;}
+  button.ghost{
+    background:transparent;
+    border-color:var(--line-strong);
+    color:var(--ink);
+  }
+  button.ghost:hover{background:var(--teal-soft); border-color:var(--teal);}
+  button.small{
+    padding:5px 10px;
+    font-size:12px;
+  }
+  button.danger-text{
+    background:transparent;
+    color:var(--red);
+    border-color:transparent;
+    padding:5px 8px;
+  }
+  button.danger-text:hover{background:var(--red-soft);}
+  button:disabled{opacity:.5; cursor:not-allowed;}
+
+  /* ---- Historial ---- */
+  .historial-controls{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+    padding:14px 18px 0;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:8px;
+  }
+  thead th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--ink-soft);
+    padding:10px 18px;
+    border-bottom:1px solid var(--line-strong);
+  }
+  tbody td{
+    padding:10px 18px;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+    vertical-align:middle;
+  }
+  tbody tr:hover{background:#FBFAF6;}
+  td.num{font-family:var(--mono); text-align:right; white-space:nowrap;}
+  td.actions{white-space:nowrap; text-align:right;}
+  .tag{
+    display:inline-block;
+    font-size:11px;
+    padding:2px 8px;
+    border-radius:100px;
+    background:var(--teal-soft);
+    color:var(--teal);
+    font-weight:600;
+  }
+  .empty-state{
+    padding:36px 18px;
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:13.5px;
+  }
+  tbody input, tbody select{
+    font-family:var(--sans);
+    font-size:13px;
+    padding:5px 6px;
+    border:1px solid var(--line-strong);
+    border-radius:5px;
+    width:100%;
+  }
+
+  /* ---- Presupuestos ---- */
+  .presupuesto-row{
+    display:grid;
+    grid-template-columns:1fr 160px;
+    gap:14px;
+    align-items:center;
+    padding:10px 18px;
+    border-bottom:1px solid var(--line);
+  }
+  .presupuesto-row:last-child{border-bottom:none;}
+  .presupuesto-row .pr-label{font-size:13.5px; font-weight:500;}
+
+  /* ---- Import/Export ---- */
+  .io-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:14px;
+    margin-top:14px;
+  }
+  .io-card{
+    padding:16px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .io-card h3{
+    margin:0;
+    font-size:14.5px;
+    font-family:var(--serif);
+    font-weight:600;
+  }
+  .io-card p{
+    margin:0;
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .io-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:4px;
+  }
+  input[type=file]{display:none;}
+  label.file-btn{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:13px;
+    border-radius:6px;
+    border:1px dashed var(--line-strong);
+    padding:9px 14px;
+    cursor:pointer;
+    color:var(--ink-soft);
+    text-align:center;
+  }
+  label.file-btn:hover{border-color:var(--teal); color:var(--teal);}
+
+  #status-msg{
+    position:fixed;
+    bottom:18px;
+    left:50%;
+    transform:translateX(-50%);
+    background:var(--ink);
+    color:#fff;
+    padding:10px 18px;
+    border-radius:8px;
+    font-size:13px;
+    box-shadow:0 6px 18px rgba(0,0,0,.18);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+  }
+  #status-msg.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+  #status-msg.error{background:var(--red);}
+
+  footer.app-footer{
+    max-width:1080px;
+    margin:48px auto 0;
+    padding:16px 24px 0;
+    border-top:1px solid var(--line);
+    color:var(--ink-soft);
+    font-size:12px;
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="eyebrow">Aplicación local · sin conexión a servidores</div>
+  <h1>Gestión Económica</h1>
+  <p>Registro de apuntes de pago, control presupuestario por finalidad y exportación de datos. Todo se guarda automáticamente en este navegador mediante IndexedDB.</p>
+</header>
+
+<main>
+
+  <!-- RESUMEN -->
+  <section id="seccion-resumen">
+    <h2>Resumen presupuestario <span class="section-note">Disponible por finalidad</span></h2>
+    <div id="grid-resumen"></div>
+  </section>
+
+  <!-- NUEVO APUNTE -->
+  <section id="seccion-form">
+    <h2>Nuevo apunte</h2>
+    <form id="form-apunte" class="card form-row">
+      <div class="field grow">
+        <label for="input-descripcion">Descripción</label>
+        <input type="text" id="input-descripcion" placeholder="Ej. Billetes de avión — grupo A" required>
+      </div>
+      <div class="field">
+        <label for="input-cantidad">Cantidad (€)</label>
+        <input type="number" id="input-cantidad" step="0.01" min="0.01" placeholder="0,00" required>
+      </div>
+      <div class="field">
+        <label for="input-finalidad">Finalidad</label>
+        <select id="input-finalidad" required></select>
+      </div>
+      <div class="field">
+        <label for="input-fecha">Fecha</label>
+        <input type="date" id="input-fecha" required>
+      </div>
+      <div class="field">
+        <button type="submit" class="primary">Añadir apunte</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- HISTORIAL -->
+  <section id="seccion-historial">
+    <h2>Historial de apuntes <span class="section-note" id="historial-count"></span></h2>
+    <div class="card">
+      <div class="historial-controls">
+        <div class="field" style="min-width:220px;">
+          <label for="filtro-finalidad">Filtrar por finalidad</label>
+          <select id="filtro-finalidad"></select>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Descripción</th>
+              <th>Finalidad</th>
+              <th style="text-align:right;">Cantidad</th>
+              <th style="text-align:right;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-historial"></tbody>
+        </table>
+        <div id="historial-empty" class="empty-state" style="display:none;">No hay apuntes que coincidan con el filtro seleccionado.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRESUPUESTOS -->
+  <section id="seccion-presupuestos">
+    <h2>Cantidades presupuestadas <span class="section-note">Define el presupuesto de cada finalidad</span></h2>
+    <div class="card" id="lista-presupuestos"></div>
+  </section>
+
+  <!-- IMPORTAR / EXPORTAR -->
+  <section id="seccion-io">
+    <h2>Importar / Exportar</h2>
+    <div class="io-grid">
+
+      <div class="card io-card">
+        <h3>Apuntes</h3>
+        <p>Exporta el historial completo de apuntes o importa apuntes desde un archivo CSV/Excel con columnas Fecha, Descripción, Cantidad y Finalidad.</p>
+        <div class="io-actions">
+          <button class="ghost small" id="btn-export-apuntes-csv">Exportar CSV</button>
+          <button class="ghost small" id="btn-export-apuntes-xlsx">Exportar Excel</button>
+          <label class="file-btn small" for="file-import-apuntes">Importar archivo…</label>
+          <input type="file" id="file-import-apuntes" accept=".csv,.xlsx,.xls">
+        </div>
+      </div>
+
+      <div class="card io-card">
+        <h3>Presupuestos</h3>
+        <p>Exporta las cantidades presupuestadas por finalidad o importa un archivo CSV/Excel con columnas Finalidad y Cantidad presupuestada.</p>
+        <div class="io-actions">
+          <button class="ghost small" id="btn-export-presupuestos-csv">Exportar CSV</button>
+          <button class="ghost small" id="btn-export-presupuestos-xlsx">Exportar Excel</button>
+          <label class="file-btn small" for="file-import-presupuestos">Importar archivo…</label>
+          <input type="file" id="file-import-presupuestos" accept=".csv,.xlsx,.xls">
+        </div>
+      </div>
+
+      <div class="card io-card">
+        <h3>Informe completo</h3>
+        <p>Genera un archivo con el resumen presupuestario (presupuestado, gastado y disponible) y el historial completo de apuntes.</p>
+        <div class="io-actions">
+          <button class="primary small" id="btn-export-informe-xlsx">Exportar Excel</button>
+          <button class="ghost small" id="btn-export-informe-csv">Exportar CSV</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="app-footer">
+  Los datos se guardan automáticamente en la base de datos local (IndexedDB) de este navegador cada vez que se añade, edita o elimina un apunte, y también al modificar los presupuestos. No se envía información a ningún servidor. Para conservar una copia de seguridad, usa las opciones de exportación.
+</footer>
+
+<div id="status-msg"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============ Configuración de finalidades ============ */
+  const FINALIDADES = [
+    { key:'apoyo_organizativo',        label:'Apoyo organizativo' },
+    { key:'visitas_preparatorias',     label:'Visitas preparatorias' },
+    { key:'movilidad_grupos',          label:'Movilidad de grupos' },
+    { key:'aprendizaje_observacion',   label:'Aprendizaje por observación' },
+    { key:'movilidad_larga_duracion',  label:'Movilidad de larga duración' }
+  ];
+  const labelFor = key => (FINALIDADES.find(f=>f.key===key)||{}).label || key;
+
+  /* ============ Estado en memoria ============ */
+  let db = null;
+  let apuntes = [];               // [{id, descripcion, cantidad, finalidad, fecha}]
+  let presupuestos = {};          // { finalidadKey: cantidad }
+  let editingId = null;
+  let currentFilter = 'todas';
+
+  /* ============ IndexedDB ============ */
+  const DB_NAME = 'gestionEconomicaDB';
+  const DB_VERSION = 2; // subir este número si en el futuro se añaden nuevos object stores
+
+  function openDatabase(){
+    return new Promise((resolve, reject)=>{
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = e=>{
+        const _db = e.target.result;
+        if(!_db.objectStoreNames.contains('apuntes')){
+          const store = _db.createObjectStore('apuntes', { keyPath:'id', autoIncrement:true });
+          store.createIndex('finalidad', 'finalidad', { unique:false });
+        }
+        if(!_db.objectStoreNames.contains('presupuestos')){
+          _db.createObjectStore('presupuestos', { keyPath:'finalidad' });
+        }
+      };
+      req.onsuccess = e=>resolve(e.target.result);
+      req.onerror = e=>reject(e.target.error);
+      req.onblocked = ()=>{
+        showStatus('Hay otra pestaña abierta con esta aplicación. Ciérrala y recarga esta página.', true);
+      };
+    });
+  }
+
+  function tx(storeName, mode){
+    return db.transaction(storeName, mode).objectStore(storeName);
+  }
+  function dbAdd(storeName, value){
+    return new Promise((resolve,reject)=>{
+      const req = tx(storeName,'readwrite').add(value);
+      req.onsuccess = e=>resolve(e.target.result);
+      req.onerror = e=>reject(e.target.error);
+    });
+  }
+  function dbPut(storeName, value){
+    return new Promise((resolve,reject)=>{
+      const req = tx(storeName,'readwrite').put(value);
+      req.onsuccess = e=>resolve(e.target.result);
+      req.onerror = e=>reject(e.target.error);
+    });
+  }
+  function dbDelete(storeName, key){
+    return new Promise((resolve,reject)=>{
+      const req = tx(storeName,'readwrite').delete(key);
+      req.onsuccess = ()=>resolve();
+      req.onerror = e=>reject(e.target.error);
+    });
+  }
+  function dbGetAll(storeName){
+    return new Promise((resolve,reject)=>{
+      const req = tx(storeName,'readonly').getAll();
+      req.onsuccess = e=>resolve(e.target.result);
+      req.onerror = e=>reject(e.target.error);
+    });
+  }
+
+  /* ============ Utilidades ============ */
+  function todayISO(){
+    return new Date().toISOString().slice(0,10);
+  }
+  function fmtMoney(n){
+    const v = Number(n)||0;
+    return v.toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+  }
+  function normalizeStr(s){
+    return String(s==null?'':s)
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .toLowerCase().trim();
+  }
+  function parseNumberEs(value){
+    if(typeof value === 'number') return value;
+    let s = String(value==null?'':value).trim();
+    if(s==='') return NaN;
+    s = s.replace(/[€\s]/g,'');
+    if(s.includes(',') && s.includes('.')){
+      s = s.replace(/\./g,'').replace(',', '.');
+    } else if(s.includes(',')){
+      s = s.replace(',', '.');
+    }
+    return parseFloat(s);
+  }
+  function finalidadKeyFromText(text){
+    const n = normalizeStr(text);
+    const found = FINALIDADES.find(f => normalizeStr(f.label)===n || normalizeStr(f.key)===n);
+    return found ? found.key : null;
+  }
+  function getField(row, candidates){
+    const keys = Object.keys(row);
+    for(const c of candidates){
+      const nc = normalizeStr(c);
+      const match = keys.find(k => normalizeStr(k)===nc);
+      if(match !== undefined) return row[match];
+    }
+    return undefined;
+  }
+  function showStatus(msg, isError){
+    const el = document.getElementById('status-msg');
+    el.textContent = msg;
+    el.className = isError ? 'show error' : 'show';
+    clearTimeout(showStatus._t);
+    showStatus._t = setTimeout(()=>{ el.classList.remove('show'); }, 3200);
+  }
+  function sumGastado(finalidadKey){
+    return apuntes.reduce((acc,a)=> a.finalidad===finalidadKey ? acc + Number(a.cantidad||0) : acc, 0);
+  }
+
+  /* ============ Renderizado ============ */
+  function fillFinalidadSelects(){
+    const selForm = document.getElementById('input-finalidad');
+    const selFiltro = document.getElementById('filtro-finalidad');
+    selForm.innerHTML = FINALIDADES.map(f=>`<option value="${f.key}">${f.label}</option>`).join('');
+    selFiltro.innerHTML = '<option value="todas">Todas las finalidades</option>' +
+      FINALIDADES.map(f=>`<option value="${f.key}">${f.label}</option>`).join('');
+    selFiltro.value = currentFilter;
+  }
+
+  function renderResumen(){
+    const grid = document.getElementById('grid-resumen');
+    grid.innerHTML = FINALIDADES.map(f=>{
+      const presupuesto = Number(presupuestos[f.key]||0);
+      const gastado = sumGastado(f.key);
+      const disponible = presupuesto - gastado;
+      const pct = presupuesto>0 ? Math.min(100,(gastado/presupuesto)*100) : (gastado>0?100:0);
+      let status = 'status-ok';
+      if(disponible < 0) status = 'status-over';
+      else if(pct >= 85) status = 'status-warn';
+      return `
+        <div class="budget-card ${status}">
+          <div class="bc-title">${f.label}</div>
+          <div class="bc-disponible"><span class="lbl">Disponible</span>${fmtMoney(disponible)}</div>
+          <div class="bc-bar"><div class="bc-bar-fill" style="width:${pct}%"></div></div>
+          <div class="bc-meta">
+            <span>Presup. ${fmtMoney(presupuesto)}</span>
+            <span>Gastado ${fmtMoney(gastado)}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderPresupuestosForm(){
+    const cont = document.getElementById('lista-presupuestos');
+    cont.innerHTML = FINALIDADES.map(f=>`
+      <div class="presupuesto-row">
+        <div class="pr-label">${f.label}</div>
+        <input type="number" step="0.01" min="0" class="input-presupuesto" data-finalidad="${f.key}"
+          value="${Number(presupuestos[f.key]||0)}">
+      </div>
+    `).join('');
+    cont.querySelectorAll('.input-presupuesto').forEach(inp=>{
+      inp.addEventListener('change', async ()=>{
+        const key = inp.dataset.finalidad;
+        let val = parseFloat(inp.value);
+        if(isNaN(val) || val < 0) val = 0;
+        inp.value = val;
+        presupuestos[key] = val;
+        try{
+          await dbPut('presupuestos', { finalidad:key, cantidad:val });
+          renderResumen();
+          showStatus('Presupuesto actualizado y guardado.');
+        }catch(err){
+          showStatus('Error al guardar el presupuesto.', true);
+        }
+      });
+    });
+  }
+
+  function renderHistorial(){
+    const tbody = document.getElementById('tbody-historial');
+    const emptyEl = document.getElementById('historial-empty');
+    const countEl = document.getElementById('historial-count');
+
+    let lista = apuntes.slice().sort((a,b)=>{
+      if(a.fecha === b.fecha) return b.id - a.id;
+      return a.fecha < b.fecha ? 1 : -1;
+    });
+    if(currentFilter !== 'todas'){
+      lista = lista.filter(a=>a.finalidad===currentFilter);
+    }
+
+    countEl.textContent = `(${lista.length} apunte${lista.length===1?'':'s'})`;
+
+    if(lista.length===0){
+      tbody.innerHTML = '';
+      emptyEl.style.display = 'block';
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    tbody.innerHTML = lista.map(a=>{
+      if(a.id === editingId){
+        return `
+          <tr data-id="${a.id}">
+            <td><input type="date" class="edit-fecha" value="${a.fecha}"></td>
+            <td><input type="text" class="edit-descripcion" value="${escapeAttr(a.descripcion)}"></td>
+            <td>
+              <select class="edit-finalidad">
+                ${FINALIDADES.map(f=>`<option value="${f.key}" ${f.key===a.finalidad?'selected':''}>${f.label}</option>`).join('')}
+              </select>
+            </td>
+            <td class="num"><input type="number" step="0.01" min="0.01" class="edit-cantidad" value="${a.cantidad}" style="text-align:right;"></td>
+            <td class="actions">
+              <button class="ghost small btn-save" data-id="${a.id}">Guardar</button>
+              <button class="danger-text small btn-cancel" data-id="${a.id}">Cancelar</button>
+            </td>
+          </tr>`;
+      }
+      return `
+        <tr data-id="${a.id}">
+          <td>${formatFechaDisplay(a.fecha)}</td>
+          <td>${escapeHtml(a.descripcion)}</td>
+          <td><span class="tag">${labelFor(a.finalidad)}</span></td>
+          <td class="num">${fmtMoney(a.cantidad)}</td>
+          <td class="actions">
+            <button class="ghost small btn-edit" data-id="${a.id}">Editar</button>
+            <button class="danger-text small btn-delete" data-id="${a.id}">Eliminar</button>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  function formatFechaDisplay(iso){
+    if(!iso) return '';
+    const [y,m,d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+  function escapeHtml(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function escapeAttr(s){ return escapeHtml(s); }
+
+  function renderAll(){
+    renderResumen();
+    renderPresupuestosForm();
+    renderHistorial();
+  }
+
+  /* ============ Carga inicial ============ */
+  async function loadFromDB(){
+    const [apuntesData, presData] = await Promise.all([
+      dbGetAll('apuntes'),
+      dbGetAll('presupuestos')
+    ]);
+    apuntes = apuntesData || [];
+    presupuestos = {};
+    FINALIDADES.forEach(f=> presupuestos[f.key] = 0);
+    (presData||[]).forEach(p=> { presupuestos[p.finalidad] = Number(p.cantidad)||0; });
+  }
+
+  /* ============ Formulario nuevo apunte ============ */
+  document.getElementById('form-apunte').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const descripcion = document.getElementById('input-descripcion').value.trim();
+    const cantidad = parseFloat(document.getElementById('input-cantidad').value);
+    const finalidad = document.getElementById('input-finalidad').value;
+    const fecha = document.getElementById('input-fecha').value || todayISO();
+
+    if(!descripcion){ showStatus('La descripción no puede estar vacía.', true); return; }
+    if(isNaN(cantidad) || cantidad <= 0){ showStatus('Introduce una cantidad válida mayor que 0.', true); return; }
+
+    const nuevo = { descripcion, cantidad, finalidad, fecha };
+    try{
+      const id = await dbAdd('apuntes', nuevo);
+      nuevo.id = id;
+      apuntes.push(nuevo);
+      renderAll();
+      document.getElementById('input-descripcion').value = '';
+      document.getElementById('input-cantidad').value = '';
+      document.getElementById('input-fecha').value = todayISO();
+      document.getElementById('input-descripcion').focus();
+      showStatus('Apunte añadido y guardado.');
+    }catch(err){
+      showStatus('Error al guardar el apunte.', true);
+    }
+  });
+
+  /* ============ Filtro historial ============ */
+  document.getElementById('filtro-finalidad').addEventListener('change', e=>{
+    currentFilter = e.target.value;
+    renderHistorial();
+  });
+
+  /* ============ Edición / eliminación (delegación de eventos) ============ */
+  document.getElementById('tbody-historial').addEventListener('click', async e=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const id = Number(btn.dataset.id);
+
+    if(btn.classList.contains('btn-edit')){
+      editingId = id;
+      renderHistorial();
+      return;
+    }
+    if(btn.classList.contains('btn-cancel')){
+      editingId = null;
+      renderHistorial();
+      return;
+    }
+    if(btn.classList.contains('btn-delete')){
+      const apunte = apuntes.find(a=>a.id===id);
+      const ok = confirm(`¿Eliminar el apunte "${apunte ? apunte.descripcion : ''}"? Esta acción no se puede deshacer.`);
+      if(!ok) return;
+      try{
+        await dbDelete('apuntes', id);
+        apuntes = apuntes.filter(a=>a.id!==id);
+        renderAll();
+        showStatus('Apunte eliminado.');
+      }catch(err){
+        showStatus('Error al eliminar el apunte.', true);
+      }
+      return;
+    }
+    if(btn.classList.contains('btn-save')){
+      const row = btn.closest('tr');
+      const fecha = row.querySelector('.edit-fecha').value;
+      const descripcion = row.querySelector('.edit-descripcion').value.trim();
+      const finalidad = row.querySelector('.edit-finalidad').value;
+      const cantidad = parseFloat(row.querySelector('.edit-cantidad').value);
+
+      if(!descripcion){ showStatus('La descripción no puede estar vacía.', true); return; }
+      if(isNaN(cantidad) || cantidad <= 0){ showStatus('Introduce una cantidad válida mayor que 0.', true); return; }
+      if(!fecha){ showStatus('Introduce una fecha válida.', true); return; }
+
+      const actualizado = { id, descripcion, cantidad, finalidad, fecha };
+      try{
+        await dbPut('apuntes', actualizado);
+        const idx = apuntes.findIndex(a=>a.id===id);
+        apuntes[idx] = actualizado;
+        editingId = null;
+        renderAll();
+        showStatus('Apunte actualizado y guardado.');
+      }catch(err){
+        showStatus('Error al actualizar el apunte.', true);
+      }
+      return;
+    }
+  });
+
+  /* ============ Exportación ============ */
+  function downloadBlob(content, filename, mime){
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  function exportSheet(data, filename, type, sheetName){
+    const ws = XLSX.utils.json_to_sheet(data);
+    if(type === 'csv'){
+      const csv = XLSX.utils.sheet_to_csv(ws);
+      downloadBlob('\uFEFF' + csv, filename, 'text/csv;charset=utf-8;');
+    } else {
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, sheetName || 'Datos');
+      XLSX.writeFile(wb, filename, { bookType:'xlsx' });
+    }
+  }
+
+  document.getElementById('btn-export-apuntes-csv').addEventListener('click', ()=>{
+    exportApuntesData('csv');
+  });
+  document.getElementById('btn-export-apuntes-xlsx').addEventListener('click', ()=>{
+    exportApuntesData('xlsx');
+  });
+  function exportApuntesData(type){
+    if(apuntes.length===0){ showStatus('No hay apuntes que exportar.', true); return; }
+    const data = apuntes.slice()
+      .sort((a,b)=> a.fecha < b.fecha ? -1 : (a.fecha > b.fecha ? 1 : a.id-b.id))
+      .map(a=>({
+        Fecha: a.fecha,
+        'Descripción': a.descripcion,
+        Cantidad: Number(a.cantidad),
+        Finalidad: labelFor(a.finalidad)
+      }));
+    exportSheet(data, `apuntes.${type}`, type, 'Apuntes');
+    showStatus('Apuntes exportados.');
+  }
+
+  document.getElementById('btn-export-presupuestos-csv').addEventListener('click', ()=>{
+    exportPresupuestosData('csv');
+  });
+  document.getElementById('btn-export-presupuestos-xlsx').addEventListener('click', ()=>{
+    exportPresupuestosData('xlsx');
+  });
+  function exportPresupuestosData(type){
+    const data = FINALIDADES.map(f=>({
+      Finalidad: f.label,
+      'Cantidad presupuestada': Number(presupuestos[f.key]||0)
+    }));
+    exportSheet(data, `presupuestos.${type}`, type, 'Presupuestos');
+    showStatus('Presupuestos exportados.');
+  }
+
+  document.getElementById('btn-export-informe-xlsx').addEventListener('click', ()=>{
+    const wsResumen = XLSX.utils.json_to_sheet(buildResumenData());
+    const wsHistorial = XLSX.utils.json_to_sheet(buildHistorialData());
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+    XLSX.utils.book_append_sheet(wb, wsHistorial, 'Historial');
+    XLSX.writeFile(wb, 'informe_completo.xlsx', { bookType:'xlsx' });
+    showStatus('Informe completo exportado (Excel).');
+  });
+  document.getElementById('btn-export-informe-csv').addEventListener('click', ()=>{
+    exportSheet(buildResumenData(), 'informe_resumen.csv', 'csv', 'Resumen');
+    exportSheet(buildHistorialData(), 'informe_historial.csv', 'csv', 'Historial');
+    showStatus('Informe completo exportado (2 archivos CSV).');
+  });
+  function buildResumenData(){
+    return FINALIDADES.map(f=>{
+      const presupuesto = Number(presupuestos[f.key]||0);
+      const gastado = sumGastado(f.key);
+      return {
+        Finalidad: f.label,
+        Presupuestado: presupuesto,
+        Gastado: gastado,
+        Disponible: presupuesto - gastado
+      };
+    });
+  }
+  function buildHistorialData(){
+    return apuntes.slice()
+      .sort((a,b)=> a.fecha < b.fecha ? -1 : (a.fecha > b.fecha ? 1 : a.id-b.id))
+      .map(a=>({
+        Fecha: a.fecha,
+        'Descripción': a.descripcion,
+        Cantidad: Number(a.cantidad),
+        Finalidad: labelFor(a.finalidad)
+      }));
+  }
+
+  /* ============ Importación ============ */
+  function readFileAsRows(file){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = e=>{
+        try{
+          const data = new Uint8Array(e.target.result);
+          const wb = XLSX.read(data, { type:'array' });
+          const firstSheet = wb.SheetNames[0];
+          const ws = wb.Sheets[firstSheet];
+          const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+          resolve(rows);
+        }catch(err){ reject(err); }
+      };
+      reader.onerror = ()=>reject(new Error('No se pudo leer el archivo.'));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  document.getElementById('file-import-apuntes').addEventListener('change', async e=>{
+    const file = e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    try{
+      const rows = await readFileAsRows(file);
+      let importados = 0, omitidos = 0;
+      for(const row of rows){
+        const fechaRaw = getField(row, ['fecha','date']);
+        const descripcion = getField(row, ['descripcion','descripción','desc']);
+        const cantidadRaw = getField(row, ['cantidad','importe','amount']);
+        const finalidadRaw = getField(row, ['finalidad','categoria','categoría','purpose']);
+
+        const finalidadKey = finalidadKeyFromText(finalidadRaw);
+        const cantidad = parseNumberEs(cantidadRaw);
+        let fecha = String(fechaRaw||'').trim();
+        if(fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)){
+          const parsedDate = parseFlexibleDate(fecha);
+          fecha = parsedDate || todayISO();
+        }
+        if(!fecha) fecha = todayISO();
+
+        if(!descripcion || !finalidadKey || isNaN(cantidad) || cantidad<=0){
+          omitidos++;
+          continue;
+        }
+        const nuevo = { descripcion:String(descripcion).trim(), cantidad, finalidad:finalidadKey, fecha };
+        const id = await dbAdd('apuntes', nuevo);
+        nuevo.id = id;
+        apuntes.push(nuevo);
+        importados++;
+      }
+      renderAll();
+      showStatus(`Importación completada: ${importados} apunte(s) añadidos${omitidos>0 ? `, ${omitidos} fila(s) omitidas por datos incompletos` : ''}.`, omitidos>0 && importados===0);
+    }catch(err){
+      showStatus('Error al importar el archivo. Comprueba el formato.', true);
+    }
+  });
+
+  document.getElementById('file-import-presupuestos').addEventListener('change', async e=>{
+    const file = e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    try{
+      const rows = await readFileAsRows(file);
+      let actualizados = 0, omitidos = 0;
+      for(const row of rows){
+        const finalidadRaw = getField(row, ['finalidad','categoria','categoría','purpose']);
+        const cantidadRaw = getField(row, ['cantidad presupuestada','cantidad','importe presupuestado','presupuesto','amount']);
+        const finalidadKey = finalidadKeyFromText(finalidadRaw);
+        const cantidad = parseNumberEs(cantidadRaw);
+        if(!finalidadKey || isNaN(cantidad) || cantidad<0){
+          omitidos++;
+          continue;
+        }
+        presupuestos[finalidadKey] = cantidad;
+        await dbPut('presupuestos', { finalidad:finalidadKey, cantidad });
+        actualizados++;
+      }
+      renderAll();
+      showStatus(`Presupuestos actualizados: ${actualizados} finalidad(es)${omitidos>0 ? `, ${omitidos} fila(s) omitidas` : ''}.`, omitidos>0 && actualizados===0);
+    }catch(err){
+      showStatus('Error al importar el archivo. Comprueba el formato.', true);
+    }
+  });
+
+  function parseFlexibleDate(s){
+    s = String(s).trim();
+    let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if(m){
+      const d = m[1].padStart(2,'0'), mo = m[2].padStart(2,'0');
+      return `${m[3]}-${mo}-${d}`;
+    }
+    m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if(m){
+      return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+    }
+    const d = new Date(s);
+    if(!isNaN(d.getTime())) return d.toISOString().slice(0,10);
+    return null;
+  }
+
+  /* ============ Inicialización ============ */
+  (async function init(){
+    try{
+      db = await openDatabase();
+      await loadFromDB();
+      fillFinalidadSelects();
+      document.getElementById('input-fecha').value = todayISO();
+      renderAll();
+    }catch(err){
+      showStatus('No se pudo abrir la base de datos local (IndexedDB). Comprueba los permisos del navegador.', true);
+      console.error(err);
+    }
+  })();
+
+})();
+</script>
+
+</body>
+</html>
