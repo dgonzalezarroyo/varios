@@ -1,3 +1,5 @@
+https://dgonzalezarroyo.github.io/varios/gestion_economica_erasmus/index.html
+
 # Gestión Económica — Erasmus+
 
 Aplicación web de un solo archivo (`gestion_economica_erasmus.html`) para llevar el **libro de cuentas** de un proyecto Erasmus+: registrar apuntes de pago, controlar el presupuesto disponible por finalidad y exportar los datos a CSV o Excel.
