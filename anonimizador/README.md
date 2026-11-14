@@ -1,3 +1,5 @@
+https://dgonzalezarroyo.github.io/varios/anonimizador/index.html
+
 # Anonimizador y desanonimizador de textos
 
 Aplicación web local para sustituir nombres de personas por códigos y códigos por sus nombres, usando una tabla de correspondencias en CSV. El resultado previsto es un único archivo `index.html` autónomo: se abre en el navegador y permite trabajar con los archivos sin instalar software ni configurar un servidor.
