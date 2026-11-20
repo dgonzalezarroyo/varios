@@ -15,9 +15,9 @@ Aplicación web local para sustituir nombres de personas por códigos y códigos
 
 Los nombres y códigos se intercambian en ambos sentidos durante el mismo procesamiento. Por ello, revisa el resultado y la tabla si un nombre también coincide con un código, o si hay entradas que se solapan.
 
-## Formato del CSV
+## Formato del CSV u hoja de cálculo
 
-El CSV debe incluir una fila de encabezados y una columna para el nombre y otra para el código. Se prevé admitir UTF-8 con o sin BOM, y separador coma o punto y coma. Los encabezados y las filas deben ser coherentes entre sí.
+El CSV u hoja de cálculo debe incluir una fila de encabezados y una columna para el nombre y otra para el código. Se prevé admitir UTF-8 con o sin BOM, y separador coma o punto y coma. Los encabezados y las filas deben ser coherentes entre sí.
 
 Ejemplo con comas:
 
@@ -36,8 +36,6 @@ Juan Pérez García;alumno01
 María López Sánchez;alumno02
 Pedro Fernández Ruiz;alumno03
 ```
-
-Los nombres pueden contener varias palabras. Si los datos incluyen comas o punto y coma dentro de un campo, deben estar correctamente entrecomillados según las reglas del CSV y la aplicación debe admitir ese caso para que pueda interpretarse sin ambigüedad. No uses nombres o códigos repetidos salvo que la aplicación documente cómo resuelve esa situación.
 
 ## Privacidad
 
