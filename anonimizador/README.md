@@ -7,7 +7,7 @@ Aplicación web local para sustituir nombres de personas por códigos y códigos
 ## Cómo usar
 
 1. Abre `index.html` con un navegador moderno.
-2. Selecciona el CSV con las correspondencias.
+2. Selecciona el CSV u hoja de cálculo con las correspondencias.
 3. Selecciona o carga el archivo TXT que quieres transformar.
 4. Revisa las advertencias que muestre la aplicación, en particular las relativas a datos duplicados o ambiguos.
 5. Genera y revisa la vista previa del resultado.
