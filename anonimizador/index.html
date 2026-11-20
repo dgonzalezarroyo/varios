@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; form-action 'none'">
+<title>Anonimizador de textos</title>
+<style>
+:root{
+  --bg:#eef2f5; --surface:#ffffff; --ink:#18242f; --muted:#5b6b7a; --line:#cfd8df;
+  --accent:#0d6b6b; --accent-ink:#ffffff; --accent-soft:#dff0ef;
+  --warn-bg:#fff4d6; --warn-ink:#6b4a00; --err-bg:#fde4e4; --err-ink:#8a1c1c; --ok-ink:#0d6b3a;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10181f; --surface:#192530; --ink:#e6edf2; --muted:#93a4b3; --line:#2e3e4c;
+    --accent:#4fc3bd; --accent-ink:#08201f; --accent-soft:#17383a;
+    --warn-bg:#3a3014; --warn-ink:#f1d98a; --err-bg:#3d1b1b; --err-ink:#f5b3b3; --ok-ink:#7fd6a4;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;color:var(--ink);background:var(--bg);font:16px/1.55 "Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif}
+main{max-width:920px;margin:0 auto;padding:32px 20px 56px}
+h1{font:700 2rem/1.15 Georgia,"Times New Roman",serif;margin:0 0 8px;letter-spacing:-.01em}
+h2{font-size:1.05rem;margin:0 0 4px}
+.lead{color:var(--muted);margin:0 0 20px;max-width:62ch}
+.privacy{display:flex;gap:12px;align-items:flex-start;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:12px 16px;margin-bottom:24px}
+.privacy svg{flex:none;margin-top:2px;color:var(--accent)}
+.privacy p{margin:0;font-size:.95rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+.panel p.hint{color:var(--muted);font-size:.9rem;margin:0 0 12px}
+input[type=file]{width:100%;font:inherit;color:var(--ink)}
+input[type=file]::file-selector-button{font:inherit;font-weight:600;margin-right:12px;padding:8px 14px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+input[type=file]::file-selector-button:hover{background:var(--accent-soft)}
+.info{margin-top:12px;font-size:.9rem;min-height:1.4em;color:var(--muted)}
+.info.ok{color:var(--ok-ink)}
+.info.bad{color:var(--err-ink)}
+.msgs{margin:16px 0 0;display:grid;gap:8px}
+.msg{border-radius:8px;padding:10px 14px;font-size:.92rem}
+.msg.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.msg.err{background:var(--err-bg);color:var(--err-ink)}
+.msg ul{margin:6px 0 0;padding-left:20px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:20px 0}
+button{font:inherit;font-weight:600;padding:10px 18px;border-radius:8px;border:1px solid var(--accent);cursor:pointer;background:transparent;color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink)}
+button:hover:not(:disabled){filter:brightness(1.08)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+label.opt{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.92rem;margin-left:auto}
+.result h2{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.stats{font-size:.88rem;font-weight:400;color:var(--muted)}
+pre{margin:12px 0 0;padding:14px;max-height:380px;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:8px;white-space:pre-wrap;word-break:break-word;font:.92rem/1.5 ui-monospace,Consolas,Menlo,monospace;tab-size:4}
+pre:empty::before{content:"El resultado aparecerá aquí.";color:var(--muted);font-family:inherit}
+</style>
+</head>
+<body>
+<main>
+  <h1>Anonimizador de textos</h1>
+  <p class="lead">Sustituye nombres de personas por códigos, y códigos por nombres, usando una tabla de correspondencias. Un mismo proceso sirve para ir y volver.</p>
+
+  <div class="privacy" role="note">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    <p><strong>Tus datos no salen de tu equipo.</strong> Todo se procesa en este navegador. No se envía nada a ningún servidor, no se usan servicios externos y no se guarda ningún archivo ni contenido. Al cerrar o recargar la página, todo desaparece.</p>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>1. Tabla de correspondencias</h2>
+      <p class="hint">Archivo .csv, .xlsx u .ods con una columna de nombres y otra de códigos. En hojas de cálculo se usa la primera hoja.</p>
+      <input type="file" id="csvFile" accept=".csv,.xlsx,.xlsm,.ods,text/csv" aria-describedby="csvInfo">
+      <div class="info" id="csvInfo" aria-live="polite">Ningún archivo cargado.</div>
+    </section>
+    <section class="panel">
+      <h2>2. Texto a transformar</h2>
+      <p class="hint">Archivo .txt con nombres, códigos o ambos.</p>
+      <input type="file" id="txtFile" accept=".txt,text/plain" aria-describedby="txtInfo">
+      <div class="info" id="txtInfo" aria-live="polite">Ningún archivo cargado.</div>
+    </section>
+  </div>
+
+  <div class="msgs" id="msgs" aria-live="polite"></div>
+
+  <div class="actions">
+    <button class="primary" id="runBtn" disabled>Sustituir</button>
+    <button id="dlBtn" disabled>Descargar resultado (.txt)</button>
+    <button id="resetBtn">Limpiar y reiniciar</button>
+    <label class="opt"><input type="checkbox" id="ci"> Ignorar mayúsculas y minúsculas</label>
+  </div>
+
+  <section class="panel result">
+    <h2>Vista previa del resultado <span class="stats" id="stats"></span></h2>
+    <pre id="out" tabindex="0" aria-label="Vista previa del resultado"></pre>
+  </section>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var state = { entries:null, csvName:"", text:null, txtName:"", result:null };
+
+  /* ---------- Lectura de archivos ---------- */
+  function readFile(file){
+    return new Promise(function(resolve, reject){
+      var r = new FileReader();
+      r.onload = function(){ resolve(String(r.result).replace(/^\uFEFF/, "")); };
+      r.onerror = function(){ reject(new Error("No se pudo leer el archivo.")); };
+      r.readAsText(file, "UTF-8");
+    });
+  }
+
+  /* ---------- CSV ---------- */
+  function detectDelimiter(text){
+    var line = (text.split(/\r\n|\n|\r/).find(function(l){ return l.trim() !== ""; })) || "";
+    var inQ = false, c = {",":0,";":0,"\t":0};
+    for (var i=0;i<line.length;i++){
+      var ch = line[i];
+      if (ch === '"') inQ = !inQ;
+      else if (!inQ && ch in c) c[ch]++;
+    }
+    return c[";"] > c[","] && c[";"] >= c["\t"] ? ";" : (c["\t"] > c[","] ? "\t" : ",");
+  }
+  function parseCSV(text, d){
+    var rows = [], row = [], cur = "", inQ = false;
+    for (var i=0;i<text.length;i++){
+      var ch = text[i];
+      if (inQ){
+        if (ch === '"'){ if (text[i+1] === '"'){ cur += '"'; i++; } else inQ = false; }
+        else cur += ch;
+      } else if (ch === '"'){ inQ = true; }
+      else if (ch === d){ row.push(cur); cur = ""; }
+      else if (ch === "\n" || ch === "\r"){
+        if (ch === "\r" && text[i+1] === "\n") i++;
+        row.push(cur); rows.push(row); row = []; cur = "";
+      } else cur += ch;
+    }
+    if (cur !== "" || row.length){ row.push(cur); rows.push(row); }
+    return rows.filter(function(r){ return r.some(function(c){ return c.trim() !== ""; }); });
+  }
+  function plain(s){ return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase(); }
+
+  function rowsToMapping(rows){
+    rows = rows.map(function(r){ return Array.from(r, function(c){ return c == null ? "" : String(c); }); })
+               .filter(function(r){ return r.some(function(c){ return c.trim() !== ""; }); });
+    if (rows.length < 2) throw new Error("La tabla debe tener una fila de encabezados y al menos una fila de datos.");
+    var head = rows[0].map(plain), ni = 0, ci = 1;
+    var n = head.findIndex(function(h){ return ["nombre","nombres","name","persona"].indexOf(h) >= 0; });
+    var c = head.findIndex(function(h){ return ["codigo","codigos","code","id","identificador"].indexOf(h) >= 0; });
+    if (n >= 0 && c >= 0 && n !== c){ ni = n; ci = c; }
+    else if (rows[0].length < 2) throw new Error("La tabla necesita al menos dos columnas: nombre y código.");
+    var entries = [], skipped = 0;
+    rows.slice(1).forEach(function(r, i){
+      var name = (r[ni] || "").trim(), code = (r[ci] || "").trim();
+      if (!name || !code){ skipped++; return; }
+      entries.push({ name:name, code:code, line:i+2 });
+    });
+    if (!entries.length) throw new Error("No se ha encontrado ninguna correspondencia válida en la tabla.");
+    return { entries:entries, skipped:skipped };
+  }
+
+  /* ---------- Hojas de cálculo (.xlsx / .ods) sin bibliotecas ---------- */
+  function readBuffer(file){
+    return new Promise(function(res, rej){
+      var r = new FileReader();
+      r.onload = function(){ res(r.result); };
+      r.onerror = function(){ rej(new Error("No se pudo leer el archivo.")); };
+      r.readAsArrayBuffer(file);
+    });
+  }
+  function unzip(buf){
+    var u8 = new Uint8Array(buf), dv = new DataView(buf), files = {}, eocd = -1, dec = new TextDecoder("utf-8");
+    for (var i = u8.length - 22; i >= Math.max(0, u8.length - 65558); i--){
+      if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error("El archivo no es un libro de cálculo válido.");
+    var n = dv.getUint16(eocd + 10, true), p = dv.getUint32(eocd + 16, true);
+    for (var k = 0; k < n; k++){
+      if (dv.getUint32(p, true) !== 0x02014b50) break;
+      var nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+      files[dec.decode(u8.subarray(p + 46, p + 46 + nl))] = { method: dv.getUint16(p + 10, true), csize: dv.getUint32(p + 20, true), off: dv.getUint32(p + 42, true) };
+      p += 46 + nl + el + cl;
+    }
+    return { u8: u8, dv: dv, files: files };
+  }
+  function zipRead(z, name){
+    var f = z.files[name];
+    if (!f) return Promise.resolve(null);
+    var o = f.off, start = o + 30 + z.dv.getUint16(o + 26, true) + z.dv.getUint16(o + 28, true);
+    var data = z.u8.subarray(start, start + f.csize), dec = new TextDecoder("utf-8");
+    if (f.method === 0) return Promise.resolve(dec.decode(data));
+    if (f.method !== 8) return Promise.reject(new Error("El libro usa una compresión no soportada."));
+    if (typeof DecompressionStream === "undefined") return Promise.reject(new Error("Tu navegador es demasiado antiguo para leer hojas de cálculo. Actualízalo o usa un CSV."));
+    return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()
+      .then(function(b){ return dec.decode(b); });
+  }
+  function xmlDoc(text){
+    var d = new DOMParser().parseFromString(text, "application/xml");
+    if (d.getElementsByTagName("parsererror").length) throw new Error("El contenido interno del libro no se pudo interpretar.");
+    return d;
+  }
+  function ns(el, name){ return el.getElementsByTagNameNS("*", name); }
+  function colIndex(ref){
+    var m = /^[A-Za-z]+/.exec(ref), s = m ? m[0].toUpperCase() : "A", n = 0;
+    for (var j = 0; j < s.length; j++) n = n * 26 + s.charCodeAt(j) - 64;
+    return n - 1;
+  }
+  function siText(si){
+    var t = "", ts = ns(si, "t");
+    for (var i = 0; i < ts.length; i++){
+      var par = ts[i].parentNode.localName;
+      if (par === "si" || par === "r" || par === "is") t += ts[i].textContent;
+    }
+    return t;
+  }
+  function sheetRows(doc, shared){
+    var rows = [], rs = ns(doc, "row");
+    for (var i = 0; i < rs.length; i++){
+      var cells = ns(rs[i], "c"), row = [], pos = 0;
+      for (var j = 0; j < cells.length; j++){
+        var c = cells[j], ref = c.getAttribute("r"), idx = ref ? colIndex(ref) : pos, t = c.getAttribute("t"), v = ns(c, "v")[0], val = "";
+        pos = idx + 1;
+        if (t === "inlineStr"){ var is = ns(c, "is")[0]; val = is ? siText(is) : ""; }
+        else if (v){
+          val = v.textContent;
+          if (t === "s") val = shared[parseInt(val, 10)] || "";
+          else if (t === "b") val = val === "1" ? "VERDADERO" : "FALSO";
+        }
+        row[idx] = val;
+      }
+      rows.push(row);
+    }
+    return rows;
+  }
+  function parseXlsx(z){
+    return Promise.all([zipRead(z, "xl/workbook.xml"), zipRead(z, "xl/_rels/workbook.xml.rels"), zipRead(z, "xl/sharedStrings.xml")]).then(function(r){
+      var sheets = ns(xmlDoc(r[0]), "sheet");
+      if (!sheets.length) throw new Error("El libro no contiene ninguna hoja.");
+      var first = sheets[0], rid = first.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id") || first.getAttribute("r:id"), target = null;
+      if (r[1]){
+        var rels = ns(xmlDoc(r[1]), "Relationship");
+        for (var i = 0; i < rels.length; i++) if (rels[i].getAttribute("Id") === rid) target = rels[i].getAttribute("Target");
+      }
+      var path = target ? (target.charAt(0) === "/" ? target.slice(1) : "xl/" + target) : "xl/worksheets/sheet1.xml";
+      var shared = [];
+      if (r[2]){ var sis = ns(xmlDoc(r[2]), "si"); for (var k = 0; k < sis.length; k++) shared.push(siText(sis[k])); }
+      return zipRead(z, path).then(function(sx){
+        if (!sx) throw new Error("No se encontró la primera hoja del libro.");
+        return { sheet: first.getAttribute("name"), rows: sheetRows(xmlDoc(sx), shared) };
+      });
+    });
+  }
+  function parseOds(z){
+    var NT = "urn:oasis:names:tc:opendocument:xmlns:table:1.0", NO = "urn:oasis:names:tc:opendocument:xmlns:office:1.0", NX = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+    return zipRead(z, "content.xml").then(function(x){
+      var tb = ns(xmlDoc(x), "table")[0];
+      if (!tb) throw new Error("El documento no contiene ninguna hoja.");
+      var rows = [], trs = tb.getElementsByTagNameNS(NT, "table-row");
+      for (var i = 0; i < trs.length; i++){
+        var row = [], any = false, ch = trs[i].children;
+        for (var j = 0; j < ch.length; j++){
+          if (ch[j].localName !== "table-cell" && ch[j].localName !== "covered-table-cell") continue;
+          var rep = Math.min(parseInt(ch[j].getAttributeNS(NT, "number-columns-repeated") || "1", 10), 100), vt = ch[j].getAttributeNS(NO, "value-type"), val;
+          if (vt === "float" || vt === "percentage" || vt === "currency") val = ch[j].getAttributeNS(NO, "value");
+          else val = Array.prototype.map.call(ch[j].getElementsByTagNameNS(NX, "p"), function(p){ return p.textContent; }).join("\n");
+          if (val !== ""){ any = true; for (var q = 0; q < rep; q++) row.push(val); }
+          else row.length += rep;
+        }
+        if (any){
+          var rr = Math.min(parseInt(trs[i].getAttributeNS(NT, "number-rows-repeated") || "1", 10), 1000);
+          for (var w = 0; w < rr; w++) rows.push(row);
+        }
+      }
+      return { sheet: tb.getAttributeNS(NT, "name"), rows: rows };
+    });
+  }
+  function loadMappingFile(f){
+    return readBuffer(f).then(function(buf){
+      var b = new Uint8Array(buf.slice(0, 4));
+      if (b[0] === 0x50 && b[1] === 0x4B){
+        var z = unzip(buf);
+        if (z.files["xl/workbook.xml"]) return parseXlsx(z);
+        if (z.files["content.xml"]) return parseOds(z);
+        throw new Error("El archivo comprimido no parece un libro de Excel (.xlsx) ni de OpenDocument (.ods).");
+      }
+      if (b[0] === 0xD0 && b[1] === 0xCF && b[2] === 0x11 && b[3] === 0xE0)
+        throw new Error("El formato antiguo .xls (o un libro protegido con contraseña) no está soportado. Guárdalo como .xlsx, .ods o .csv.");
+      var text = new TextDecoder("utf-8").decode(buf).replace(/^\uFEFF/, "");
+      return { rows: parseCSV(text, detectDelimiter(text)), sheet: null };
+    });
+  }
+
+  /* ---------- Tabla de sustitución ---------- */
+  function norm(s, ci){ s = s.replace(/\s+/g, " ").trim(); return ci ? s.toLowerCase() : s; }
+
+  function buildMap(entries, ci){
+    var map = new Map(), warns = [], sources = [];
+    var names = new Map(), codes = new Map();
+    entries.forEach(function(e){
+      var nk = norm(e.name, ci), ck = norm(e.code, ci);
+      if (names.has(nk)){
+        var p = names.get(nk);
+        warns.push(p.code === e.code
+          ? 'Fila ' + e.line + ': el nombre «' + e.name + '» está repetido con el mismo código. Se ignora la repetición.'
+          : 'Fila ' + e.line + ': el nombre «' + e.name + '» ya tiene el código «' + p.code + '» (fila ' + p.line + '). Se usará ese y se ignora «' + e.code + '».');
+        return;
+      }
+      if (codes.has(ck)){
+        var q = codes.get(ck);
+        warns.push('Fila ' + e.line + ': el código «' + e.code + '» ya pertenece a «' + q.name + '» (fila ' + q.line + '). Se ignora la asignación a «' + e.name + '».');
+        return;
+      }
+      names.set(nk, e); codes.set(ck, e);
+    });
+    names.forEach(function(e, k){
+      var ck = norm(e.code, ci);
+      if (names.has(ck) && names.get(ck) !== e){
+        warns.push('Ambigüedad: el código «' + e.code + '» coincide con el nombre «' + names.get(ck).name + '». Se prioriza el nombre.');
+        return;
+      }
+      if (ck === k){ warns.push('El nombre y el código de la fila ' + e.line + ' son iguales («' + e.name + '»).'); }
+      map.set(k, e.code); sources.push(e.name);
+      if (!map.has(ck)){ map.set(ck, e.name); sources.push(e.code); }
+    });
+    return { map:map, warns:warns, sources:sources };
+  }
+
+  function esc(s){ return s.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&"); }
+
+  function transform(text, ci){
+    var b = buildMap(state.entries, ci);
+    var seen = new Set(), keys = [];
+    b.sources.forEach(function(s){ var k = norm(s, ci); if (!seen.has(k)){ seen.add(k); keys.push(s.trim()); } });
+    keys.sort(function(a,b2){ return b2.length - a.length; });   // la coincidencia más larga primero
+    var alt = keys.map(function(k){ return k.split(/\s+/).map(esc).join("\\s+"); }).join("|");
+    var re = new RegExp("(?<![\\p{L}\\p{N}_])(?:" + alt + ")(?![\\p{L}\\p{N}_])", "gu" + (ci ? "i" : ""));
+    var count = 0;
+    var out = text.replace(re, function(m){          // pasada única: no hay sustituciones encadenadas
+      var r = b.map.get(norm(m, ci));
+      if (r === undefined) return m;
+      count++; return r;
+    });
+    return { out:out, count:count };
+  }
+
+  /* ---------- Interfaz ---------- */
+  function setInfo(id, msg, cls){ var el = $(id); el.textContent = msg; el.className = "info" + (cls ? " " + cls : ""); }
+  function fmtSize(n){ return n < 1024 ? n + " B" : (n/1024).toFixed(1) + " KB"; }
+  function updateButtons(){ $("runBtn").disabled = !(state.entries && state.text !== null); $("dlBtn").disabled = state.result === null; }
+
+  function showMsgs(list){
+    var box = $("msgs"); box.textContent = "";
+    list.forEach(function(m){
+      var d = document.createElement("div"); d.className = "msg " + m.type;
+      var t = document.createElement("strong"); t.textContent = m.title; d.appendChild(t);
+      if (m.items && m.items.length){
+        var ul = document.createElement("ul");
+        m.items.slice(0, 25).forEach(function(i){ var li = document.createElement("li"); li.textContent = i; ul.appendChild(li); });
+        if (m.items.length > 25){ var li = document.createElement("li"); li.textContent = "… y " + (m.items.length - 25) + " más."; ul.appendChild(li); }
+        d.appendChild(ul);
+      }
+      box.appendChild(d);
+    });
+  }
+  function refreshWarnings(extra){
+    var list = [];
+    if (state.entries){
+      var w = buildMap(state.entries, $("ci").checked).warns;
+      if (state.skipped) w = w.concat(state.skipped + " fila(s) de la tabla con nombre o código vacío se han omitido.");
+      if (w.length) list.push({ type:"warn", title:"Avisos sobre la tabla de correspondencias:", items:w });
+    }
+    if (extra) list.push(extra);
+    showMsgs(list);
+  }
+  function clearResult(){ state.result = null; $("out").textContent = ""; $("stats").textContent = ""; updateButtons(); }
+
+  $("csvFile").addEventListener("change", function(ev){
+    var f = ev.target.files[0]; state.entries = null; clearResult();
+    if (!f){ setInfo("csvInfo", "Ningún archivo cargado."); refreshWarnings(); return; }
+    loadMappingFile(f).then(function(res){
+      var p = rowsToMapping(res.rows);
+      state.entries = p.entries; state.skipped = p.skipped; state.csvName = f.name;
+      setInfo("csvInfo", "✓ " + f.name + " (" + fmtSize(f.size) + ")" + (res.sheet ? " · hoja «" + res.sheet + "»" : "") + " · " + p.entries.length + " correspondencias", "ok");
+      refreshWarnings();
+    }).catch(function(e){
+      state.entries = null; setInfo("csvInfo", "✕ " + f.name, "bad");
+      refreshWarnings({ type:"err", title:"No se pudo cargar la tabla de correspondencias.", items:[e.message] });
+    }).then(updateButtons);
+  });
+
+  $("txtFile").addEventListener("change", function(ev){
+    var f = ev.target.files[0]; state.text = null; clearResult();
+    if (!f){ setInfo("txtInfo", "Ningún archivo cargado."); return; }
+    readFile(f).then(function(t){
+      state.text = t; state.txtName = f.name;
+      var lines = t === "" ? 0 : t.split(/\r\n|\n|\r/).length;
+      setInfo("txtInfo", "✓ " + f.name + " (" + fmtSize(f.size) + ") · " + lines + " líneas", "ok");
+      var extra = t.indexOf("\uFFFD") >= 0 ? { type:"warn", title:"El texto contiene caracteres no reconocidos.", items:["Es posible que el archivo no esté en UTF-8. Guárdalo como UTF-8 para conservar tildes y eñes."] } : null;
+      if (t === "") extra = { type:"warn", title:"El archivo de texto está vacío.", items:[] };
+      refreshWarnings(extra);
+    }).catch(function(e){
+      setInfo("txtInfo", "✕ " + f.name, "bad");
+      refreshWarnings({ type:"err", title:"No se pudo cargar el texto.", items:[e.message] });
+    }).then(updateButtons);
+  });
+
+  $("ci").addEventListener("change", function(){ refreshWarnings(); clearResult(); });
+
+  $("runBtn").addEventListener("click", function(){
+    try {
+      var r = transform(state.text, $("ci").checked);
+      state.result = r.out;
+      $("out").textContent = r.out;
+      $("stats").textContent = r.count + " sustitución(es) realizadas";
+      refreshWarnings(r.count === 0 ? { type:"warn", title:"No se ha encontrado ningún nombre ni código de la tabla en el texto.", items:[] } : null);
+    } catch (e){
+      clearResult();
+      refreshWarnings({ type:"err", title:"Error al procesar el texto.", items:[e.message] });
+    }
+    updateButtons();
+  });
+
+  $("dlBtn").addEventListener("click", function(){
+    if (state.result === null) return;
+    var blob = new Blob([state.result], { type:"text/plain;charset=utf-8" });
+    var url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = (state.txtName.replace(/\.[^.]*$/, "") || "texto") + "_resultado.txt";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+
+  $("resetBtn").addEventListener("click", function(){
+    state = { entries:null, csvName:"", text:null, txtName:"", result:null, skipped:0 };
+    $("csvFile").value = ""; $("txtFile").value = ""; $("ci").checked = false;
+    setInfo("csvInfo", "Ningún archivo cargado."); setInfo("txtInfo", "Ningún archivo cargado.");
+    $("msgs").textContent = ""; clearResult();
+  });
+})();
+</script>
+</body>
+</html>
